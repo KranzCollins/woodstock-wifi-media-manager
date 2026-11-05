@@ -33,6 +33,9 @@ import {
   Disconnect,
   PublishedWithError,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
+import { isManagedOrganization } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.mode';
+import { ManagedWriteRefusedError } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
+import { ManagedService } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.service';
 
 // Drops fields the workflow and downstream activities never read — biggest wins are `error` (grows per retry) and `childrenPost` (Prisma side-loads it on every recursive row).
 function slimPost(post: any) {
@@ -104,8 +107,24 @@ export class PostActivity {
     private _refreshIntegrationService: RefreshIntegrationService,
     private _webhookService: WebhooksService,
     private _temporalService: TemporalService,
-    private _subscriptionService: SubscriptionService
+    private _subscriptionService: SubscriptionService,
+    private _managedService: ManagedService
   ) {}
+
+  // W&W managed organizations never publish: every activity that would reach
+  // a provider refuses first. Non-retryable bad_body, so every frozen
+  // workflow version ends the run (and its changeState is recorded below
+  // instead of written).
+  private refuseManagedDispatch(integration: Integration) {
+    if (isManagedOrganization(integration?.organizationId)) {
+      throw new BadBody(
+        integration.providerIdentifier,
+        JSON.stringify({}),
+        Buffer.from('{}'),
+        'W&W managed organization: publishing is refused before any provider call'
+      );
+    }
+  }
 
   @ActivityMethod()
   async getIntegrationById(orgId: string, id: string) {
@@ -116,6 +135,10 @@ export class PostActivity {
   async searchForMissingThreeHoursPosts() {
     const list = await this._postService.searchForMissingThreeHoursPosts();
     for (const post of list) {
+      if (isManagedOrganization(post.organizationId)) {
+        continue;
+      }
+
       await this._temporalService.client
         .getRawClient()
         .workflow.signalWithStart('postWorkflowV112', {
@@ -154,6 +177,11 @@ export class PostActivity {
 
   @ActivityMethod()
   async getPost(orgId: string, postId: string) {
+    // "no post": the workflow stops before the publish sleep
+    if (isManagedOrganization(orgId)) {
+      return false;
+    }
+
     if (process.env.STRIPE_SECRET_KEY) {
       const subscription = await this._subscriptionService.getSubscription(
         orgId
@@ -172,6 +200,10 @@ export class PostActivity {
 
   @ActivityMethod()
   async getPostsList(orgId: string, postId: string) {
+    if (isManagedOrganization(orgId)) {
+      return [];
+    }
+
     if (process.env.STRIPE_SECRET_KEY) {
       const subscription = await this._subscriptionService.getSubscription(
         orgId
@@ -212,6 +244,8 @@ export class PostActivity {
     integration: Integration,
     posts: Post[]
   ) {
+    this.refuseManagedDispatch(integration);
+
     // kept only for in-flight postWorkflowV108 runs, which set a
     // heartbeatTimeout on this activity - removing the sender would kill
     // them. Under V109+ (no heartbeatTimeout) this is a no-op and can be
@@ -333,6 +367,8 @@ export class PostActivity {
     posts: Post[],
     allowPending: boolean
   ) {
+    this.refuseManagedDispatch(integration);
+
     // kept only for in-flight postWorkflowV108 runs, which set a
     // heartbeatTimeout on this activity - removing the sender would kill
     // them. Under V109+ (no heartbeatTimeout) this is a no-op and can be
@@ -440,6 +476,8 @@ export class PostActivity {
 
   @ActivityMethod()
   async checkPostStatus(integration: Integration, pendingData: any) {
+    this.refuseManagedDispatch(integration);
+
     const getIntegration = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
     );
@@ -451,6 +489,8 @@ export class PostActivity {
 
   @ActivityMethod()
   async finalizePost(integration: Integration, pendingData: any) {
+    this.refuseManagedDispatch(integration);
+
     const getIntegration = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
     );
@@ -471,12 +511,16 @@ export class PostActivity {
     digest = false,
     type: NotificationType = 'success'
   ) {
+    // a workflow already past getPostsList when the organization was enrolled
+    // reports the refused dispatch through its error branch: kept in the app,
+    // never emailed (nor queued for the digest) to the organization's users
+    const managed = isManagedOrganization(orgId);
     await this._notificationService.inAppNotification(
       orgId,
       subject,
       message,
-      sendEmail,
-      digest,
+      managed ? false : sendEmail,
+      managed ? false : digest,
       type
     );
   }
@@ -492,7 +536,25 @@ export class PostActivity {
 
   @ActivityMethod()
   async changeState(id: string, state: State, err?: any, body?: any) {
-    await this._postService.changeState(id, state, err, body);
+    try {
+      await this._postService.changeState(id, state, err, body);
+    } catch (e) {
+      // a managed organization's post is never rewritten by the worker: the
+      // refused dispatch is kept in the managed change feed instead
+      if (!(e instanceof ManagedWriteRefusedError) || !e.organizationId) {
+        throw e;
+      }
+
+      try {
+        await this._managedService.recordDispatchRefusal(
+          e.organizationId,
+          id,
+          `changeState:${state}`
+        );
+      } catch (recordError) {
+        /**empty**/
+      }
+    }
   }
 
   @ActivityMethod()
@@ -509,6 +571,10 @@ export class PostActivity {
   async sendWebhooks(postId: string, orgId: string, integrationId: string) {
     // Webhooks are best-effort and run after the post already published, so a
     // failure here must not fail the workflow.
+    if (isManagedOrganization(orgId)) {
+      return;
+    }
+
     try {
       const webhooks = (await this._webhookService.getWebhooks(orgId)).filter(
         (f) => {
@@ -572,6 +638,15 @@ export class PostActivity {
     delay: number;
     information: any;
   }) {
+    if (isManagedOrganization(data.orgId)) {
+      throw new BadBody(
+        data.plugName,
+        JSON.stringify({}),
+        Buffer.from('{}'),
+        'W&W managed organization: plugs are refused before any provider call'
+      );
+    }
+
     await this._integrationService.processInternalPlug(data);
   }
 

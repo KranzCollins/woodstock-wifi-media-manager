@@ -37,6 +37,28 @@ export class ThrottlerBehindProxyGuard extends ThrottlerGuard {
   }
 }
 
+// route-level guard for the W&W managed API: one budget per organization,
+// shared by every managed route and every credential of it. Keyed by the
+// organization of the credential the auth middleware matched (never by a
+// caller-supplied value), and without the handler name the default key
+// includes, so each route does not get a budget of its own
+@Injectable()
+export class ThrottlerManagedCredentialGuard extends ThrottlerGuard {
+  protected override async getTracker(
+    req: Record<string, any>
+  ): Promise<string> {
+    return req.managedCredential?.organizationId || 'unauthenticated';
+  }
+
+  protected override generateKey(
+    context: ExecutionContext,
+    suffix: string,
+    name: string
+  ): string {
+    return `managed_org_${name}_${suffix}`;
+  }
+}
+
 // route-level guard for public endpoints, keyed by the client address the
 // proxy forwards rather than the org the global guard expects
 @Injectable()

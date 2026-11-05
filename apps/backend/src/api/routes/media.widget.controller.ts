@@ -15,6 +15,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { streamUploadOptions } from '@gitroom/nestjs-libraries/upload/multer.stream.engine';
+import { RefuseManagedEffect } from '@gitroom/backend/services/auth/managed.effect.guard';
 
 @ApiTags('Media')
 @Controller('/media-widget')
@@ -22,6 +23,7 @@ export class MediaWidgetController {
   constructor(private _mediaService: MediaService) {}
 
   @Post('/upload')
+  @RefuseManagedEffect('uploading media')
   @UseInterceptors(FileInterceptor('file', streamUploadOptions()))
   async upload(
     @GetOrgFromRequest() org: Organization,

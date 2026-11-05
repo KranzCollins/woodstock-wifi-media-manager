@@ -28,6 +28,8 @@ import utc from 'dayjs/plugin/utc';
 import { AutopostRepository } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.repository';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { TemporalService } from 'nestjs-temporal-core';
+import { isManagedOrganization } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.mode';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 
 dayjs.extend(utc);
 
@@ -339,6 +341,12 @@ export class IntegrationService {
   async refreshTokens() {
     const integrations = await this._integrationRepository.needsToBeRefreshed();
     for (const integration of integrations) {
+      // a rotated refresh token could not be stored for a W&W managed
+      // organization, which would leave the channel with a dead token
+      if (isManagedOrganization(integration.organizationId)) {
+        continue;
+      }
+
       const provider = this._integrationManager.getSocialIntegration(
         integration.providerIdentifier
       );
@@ -416,6 +424,8 @@ export class IntegrationService {
   }
 
   async saveProviderPage(org: string, id: string, data: any) {
+    refuseManagedEffect(org, 'selecting a channel page');
+
     const getIntegration = await this._integrationRepository.getIntegrationById(
       org,
       id
@@ -588,7 +598,11 @@ export class IntegrationService {
       data.integration
     );
 
-    if (!getIntegration || !originalIntegration) {
+    if (
+      !getIntegration ||
+      !originalIntegration ||
+      isManagedOrganization(data.orgId)
+    ) {
       return;
     }
 
@@ -623,7 +637,12 @@ export class IntegrationService {
     currentRun: number;
   }) {
     const getPlugById = await this._integrationRepository.getPlug(data.plugId);
-    if (!getPlugById) {
+    // a W&W managed organization's plug never calls the provider; true ends
+    // the plug runs the same way a missing plug does
+    if (
+      !getPlugById ||
+      isManagedOrganization(getPlugById.integration.organizationId)
+    ) {
       return true;
     }
 

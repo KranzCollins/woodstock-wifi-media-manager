@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { pipeline, Readable, Transform } from 'stream';
 import { IUploadProvider } from './upload.interface';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -42,16 +43,37 @@ export function maxSizeStream(maxSize: number) {
   });
 }
 
+// Passes bytes through and hashes exactly what went by, so the digest is the
+// one of the bytes handed to storage (not of a URL or a caller's claim)
+export function digestStream() {
+  const hash = createHash('sha256');
+  let byteLength = 0;
+  const transform = new Transform({
+    transform(chunk: Buffer, _encoding, callback) {
+      hash.update(chunk);
+      byteLength += chunk.length;
+      callback(null, chunk);
+    },
+  });
+
+  return {
+    transform,
+    digest: () => ({ sha256: hash.digest('hex'), byteLength }),
+  };
+}
+
 // Sniffs the real type from the first bytes, applies the per-type size cap
 // and streams the rest into storage, so only the sniffing prefix and a few
 // upload parts are ever in memory. Rejections are BadRequestException with
 // the same messages the old buffer validation used. `declaredSize` is the
 // Content-Length when the sender gave one; it may be absent or wrong, so the
-// stream cap is what really enforces the limit
+// stream cap is what really enforces the limit. `observer` (optional) sees
+// every byte after the cap, e.g. digestStream for managed uploads
 export async function uploadStreamToStorage(
   storage: IUploadProvider,
   webStream: ReadableStream,
-  declaredSize = 0
+  declaredSize = 0,
+  observer?: Transform
 ) {
   let sniffed: ReadableStream & { fileType?: { mime: string; ext: string } };
   try {
@@ -72,11 +94,18 @@ export async function uploadStreamToStorage(
   }
 
   // pipeline (not pipe) so failing the cap also tears down the source
-  const body = pipeline(
-    Readable.fromWeb(sniffed as any),
-    maxSizeStream(maxSize),
-    () => {}
-  );
+  const body = observer
+    ? pipeline(
+        Readable.fromWeb(sniffed as any),
+        maxSizeStream(maxSize),
+        observer,
+        () => {}
+      )
+    : pipeline(
+        Readable.fromWeb(sniffed as any),
+        maxSizeStream(maxSize),
+        () => {}
+      );
 
   try {
     const uploaded = await storage.uploadStream(

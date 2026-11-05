@@ -1839,3 +1839,325 @@ model Announcement {
   color       AnnouncementColor @default(INFO)
   createdAt   DateTime          @default(now())
 }
+
+// W&W managed-organization extension (docs/managed-extension/README.md).
+// Additive only: no existing model or column changes. The rows are written
+// exclusively by ManagedRepository inside runAsManagedWriter.
+
+// One per enrolled organization. The row is the per-org lock every managed
+// mutation takes first, and `sequence` is the dense change-feed counter.
+model ManagedOrganization {
+  id             String   @id @default(uuid())
+  organizationId String   @unique
+  sequence       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ManagedChannelBinding {
+  id                  String    @id @default(uuid())
+  organizationId      String
+  integrationId       String    @unique
+  generation          Int       @default(1)
+  status              String    @default("PENDING_QUALIFICATION")
+  providerIdentifier  String
+  internalId          String
+  profile             String?
+  identityFingerprint String
+  qualifiedAt         DateTime?
+  pausedAt            DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([organizationId])
+}
+
+model ManagedPost {
+  id                  String   @id @default(uuid())
+  organizationId      String
+  integrationId       String
+  group               String   @unique
+  revision            Int
+  bindingGeneration   Int
+  rowFingerprint      String
+  lastSequence        Int
+  createdOperationKey String
+  lastOperationKey    String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([organizationId, id])
+}
+
+model ManagedPostRevision {
+  id             String   @id @default(uuid())
+  managedPostId  String
+  organizationId String
+  revision       Int
+  operationKey   String
+  payloadHash    String
+  sequence       Int
+  snapshot       String
+  createdAt      DateTime @default(now())
+
+  @@unique([managedPostId, revision])
+  @@index([organizationId])
+}
+
+model ManagedOperation {
+  id             String   @id @default(uuid())
+  organizationId String
+  operationKey   String
+  kind           String
+  payloadHash    String
+  managedPostId  String
+  revision       Int
+  sequence       Int
+  credentialId   String
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, operationKey])
+}
+
+model ManagedMediaEvidence {
+  id             String   @id @default(uuid())
+  organizationId String
+  mediaId        String
+  storedPath     String
+  // the storage's own marker of the object the digest was taken from; the
+  // draft gate compares it with the object's current one
+  storageVersion String?
+  // server-private pin of that object, never returned: its key and the
+  // digest of the namespace the key resolved in (see
+  // ManagedMediaUploadAttempt.storageNamespace). The object is only read
+  // again by this key in this namespace. null on evidence recorded before the
+  // pin existed: such evidence is held, never re-pinned or backfilled
+  storageKey       String?
+  storageNamespace String?
+  sha256         String
+  byteLength     Int
+  mimeType       String?
+  method         String
+  credentialId   String
+  sequence       Int
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, mediaId])
+}
+
+// A W&W media upload reserved under an operation key before any byte is
+// sent. `requestHash` binds the key to the declared digest, size and type;
+// the key is also bound to the credential that reserved it.
+// RESERVED -> RECEIVING (one attempt holds the lease) -> COMPLETED, or back
+// to RESERVED when the attempt provably stored nothing usable, or FAILED
+// after the bounded number of attempts. COMPLETED and FAILED are final.
+model ManagedMediaUpload {
+  id                String    @id @default(uuid())
+  organizationId    String
+  operationKey      String
+  credentialId      String
+  requestHash       String
+  sha256            String
+  byteLength        Int
+  mimeType          String
+  status            String    @default("RESERVED")
+  attempt           Int       @default(0)
+  leaseExpiresAt    DateTime?
+  mediaId           String?
+  evidenceId        String?
+  completedSequence Int?
+  failureReason     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([organizationId, operationKey])
+}
+
+// One row per attempt, written before the attempt's first byte: the exact
+// object identity it may create, so a crash between the storage write and
+// the terminal record is reconciled by reading back that object. Rows are
+// never deleted; `outcome` moves once from RECEIVING.
+model ManagedMediaUploadAttempt {
+  id               String   @id @default(uuid())
+  organizationId   String
+  uploadId         String
+  attempt          Int
+  storageKey       String
+  storedPath       String   @unique
+  // server-private digest of the storage namespace the key was written in;
+  // never returned. null on attempts claimed before it was recorded: those
+  // are held, never read back in a guessed namespace
+  storageNamespace String?
+  outcome          String   @default("RECEIVING")
+  detail           String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([uploadId, attempt])
+  @@index([organizationId])
+}
+
+model ManagedChangeEvent {
+  id                String   @id @default(uuid())
+  organizationId    String
+  sequence          Int
+  kind              String
+  entityType        String
+  entityId          String
+  revision          Int?
+  bindingGeneration Int?
+  operationKey      String?
+  data              String   @default("{}")
+  createdAt         DateTime @default(now())
+
+  @@unique([organizationId, sequence])
+}
+
+// An owner-driven channel connect / reconnect requested by W&W
+// (docs/managed-extension/account-connection.md), under an operation key
+// bound to the requesting credential and `requestHash` (provider, mode,
+// target integration + binding generation, expected account). Holds no token,
+// authorization code or OAuth state: those stay in memory, the state and the
+// code only as a digest on the attempt. Rows are never deleted.
+// PENDING -> EXCHANGING (one claimed callback) -> COMPLETED | FAILED |
+// UNKNOWN; PENDING -> CANCELLED | EXPIRED; FAILED (retryable codes only) ->
+// PENDING on an explicit retry.
+model ManagedConnectionIntent {
+  id                        String    @id @default(uuid())
+  organizationId            String
+  operationKey              String
+  credentialId              String
+  requestHash               String
+  providerIdentifier        String
+  mode                      String
+  targetIntegrationId       String?
+  expectedBindingGeneration Int?
+  expectedInternalId        String?
+  expectedProfile           String?
+  status                    String    @default("PENDING")
+  // authorizations issued so far; the current one is the attempt row with
+  // this number
+  attempt                   Int       @default(0)
+  expiresAt                 DateTime
+  leaseExpiresAt            DateTime?
+  failureCode               String?
+  // the receipt, once COMPLETED
+  integrationId             String?
+  bindingGeneration         Int?
+  bindingStatus             String?
+  completedSequence         Int?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([organizationId, operationKey])
+  @@index([organizationId, status])
+}
+
+// One row per authorization issued for an intent, written before the
+// authorization URL leaves the server. `outcome` moves once from ISSUED (to
+// REPLACED / CANCELLED / EXPIRED / FAILED, or to EXCHANGING and then to a
+// terminal outcome). The observed account is the provider's answer at the
+// exchange, kept apart from the credential written to Integration. Rows are
+// never deleted.
+model ManagedConnectionAttempt {
+  id                   String    @id @default(uuid())
+  organizationId       String
+  intentId             String
+  attempt              Int
+  // sha256 of the 256-bit OAuth state; the state itself is never stored
+  stateDigest          String    @unique
+  relayCredentialId    String
+  expiresAt            DateTime
+  outcome              String    @default("ISSUED")
+  // sha256 of the authorization code the claimed callback carried
+  codeDigest           String?
+  callbackCredentialId String?
+  claimedAt            DateTime?
+  failureCode          String?
+  observedInternalId   String?
+  observedProfile      String?
+  observedAt           DateTime?
+  // the provider's own expires_in, null when it gave none
+  providerExpiresIn    Int?
+  grantedScopes        String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([intentId, attempt])
+  @@index([organizationId])
+}
+
+// The owned creative runtime (docs/managed-extension/creative-runtime.md).
+// One row per W&W creative job, bound to the organization of the credential
+// that first named it: the W&W tenant / workspace and the canonical input
+// can never change afterwards. `id` (without dashes) is the job's private
+// scratch namespace. Rows are never deleted.
+model ManagedCreativeJob {
+  id             String   @id @default(uuid())
+  organizationId String
+  jobId          String
+  tenantId       String
+  workspaceId    String
+  kind           String
+  inputSha256    String
+  input          String
+  credentialId   String
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, jobId])
+}
+
+// One row per W&W ledger call (`<jobId>:<stage>:<item>:<attempt>`), created
+// before the provider request leaves (DISPATCHING) or as NOT_SENT when it
+// never will. Only the request that created it sends; it leaves DISPATCHING
+// once, to the answer it got. A replay answers `answer`, or unknown while
+// DISPATCHING. `handle`, `intermediate` and the poll fields are
+// server-private JSON and never hold a url or a key. Rows are never deleted.
+model ManagedCreativeCall {
+  id               String   @id @default(uuid())
+  organizationId   String
+  jobRowId         String?
+  callKey          String
+  requestHash      String
+  stage            String
+  item             Int
+  attempt          Int
+  status           String
+  code             String?
+  handleKey        String?
+  handle           String?
+  answer           String?
+  intermediate     String?
+  pollStatus       String?
+  pollAnswer       String?
+  pollIntermediate String?
+  credentialId     String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([organizationId, callKey])
+  @@unique([organizationId, handleKey])
+  @@index([organizationId, jobRowId])
+}
+
+// Bytes the runtime retained in its private scratch bucket, pinned by digest
+// (artifacts, slide images and voices, transcripts, W&W source images). An
+// object is only read again by `storageKey`, and only used when its bytes
+// still have `sha256`. Rows are never deleted.
+model ManagedCreativeObject {
+  id             String   @id @default(uuid())
+  organizationId String
+  jobRowId       String
+  role           String
+  slot           Int
+  storageKey     String
+  sha256         String
+  byteLength     Int
+  contentType    String
+  assetId        String?
+  assetVersion   Int?
+  createdAt      DateTime @default(now())
+
+  @@unique([jobRowId, role, slot])
+  @@index([organizationId, jobRowId])
+}

@@ -1,0 +1,112 @@
+# W&W managed runtime (docs/managed-extension/deployment.md).
+# Builds only apps/backend/src/managed-runtime/main.ts and what it imports. The
+# image never runs prisma db push, prisma migrate, pm2, nginx or the frontend,
+# and no .env or credential is copied into it: configuration is supplied at
+# run time only.
+#
+# Needs BuildKit: the build context is filtered by the allowlist in
+# Dockerfile.ww-managed.dockerignore, not by the root .dockerignore. The build
+# fails below if secrets or build output reached the context anyway.
+#
+# Both stages use the pinned official Node image index. An offline/cache
+# mirror may override the registry only with this same digest; record the
+# resolved platform digest with the built image evidence.
+ARG WW_MANAGED_NODE_IMAGE=node:22.23.4-bookworm-slim@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da
+
+FROM ${WW_MANAGED_NODE_IMAGE} AS build
+# no Prisma update / telemetry request from generate or version
+ENV CHECKPOINT_DISABLE=1 \
+    PRISMA_HIDE_UPDATE_MESSAGE=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    openssl \
+&& rm -rf /var/lib/apt/lists/*
+# Optional public mirrors change transport only: pnpm's package bytes are
+# pinned to the official npm SHA512; dependency bytes remain lockfile-pinned.
+ARG WW_MANAGED_PNPM_URL=https://registry.npmjs.org/pnpm/-/pnpm-10.6.1.tgz
+ARG WW_MANAGED_NPM_REGISTRY=https://registry.npmjs.org
+RUN node --input-type=module -e 'import {createHash} from "node:crypto"; import {writeFileSync} from "node:fs"; const u=new URL(process.env.WW_MANAGED_PNPM_URL); if(u.protocol!=="https:"||u.username||u.password) throw Error("HTTPS public package URL required"); const r=await fetch(u,{signal:AbortSignal.timeout(30000)}); if(!r.ok) throw Error("pnpm download failed"); const b=Buffer.from(await r.arrayBuffer()); if(b.length>25000000||createHash("sha512").update(b).digest("base64")!=="QO4Jr0B/qfu1+/uOHLQPu3TArww+EOkiTXtTx2WFKGFbLJJFDnTPrZHjotyv485AUNgL2nHXV3VtLOK2YhPpow==") throw Error("pnpm integrity mismatch"); writeFileSync("/tmp/pnpm.tgz",b);' \
+ && npm --no-update-notifier --no-fund --global install --ignore-scripts /tmp/pnpm.tgz \
+ && rm /tmp/pnpm.tgz
+
+WORKDIR /app
+
+# Exact lockfile install. The manifests copied are exactly the lockfile's
+# importers (the root and apps/*; libraries/* have no package.json), so
+# --frozen-lockfile sees the same workspace. Lifecycle scripts are skipped (the
+# frontend's postinstall fetches a tag script, and no native build is needed by
+# this runtime); the Prisma client is generated below with the pinned local CLI
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/backend/package.json apps/backend/
+COPY apps/commands/package.json apps/commands/
+COPY apps/extension/package.json apps/extension/
+COPY apps/frontend/package.json apps/frontend/
+COPY apps/orchestrator/package.json apps/orchestrator/
+COPY apps/sdk/package.json apps/sdk/
+RUN pnpm install --frozen-lockfile --ignore-scripts --registry="$WW_MANAGED_NPM_REGISTRY"
+
+COPY libraries/nestjs-libraries/src/database/prisma/schema.prisma libraries/nestjs-libraries/src/database/prisma/schema.prisma
+RUN node node_modules/prisma/build/index.js generate \
+    --schema libraries/nestjs-libraries/src/database/prisma/schema.prisma \
+ && node node_modules/prisma/build/index.js version
+
+COPY tsconfig.base.json tsconfig.json ./
+COPY apps/backend apps/backend
+COPY libraries libraries
+RUN if find apps libraries -name node_modules -prune -o \( \
+      -name '.env' -o -name '.env.*' -o -name '.secrets' -o -name 'dist' \
+      -o -name 'dist-managed-runtime' -o -name '*.tsbuildinfo' \
+    \) -print | grep -q .; then \
+      echo 'The build context holds a secret or build output: build with BuildKit and Dockerfile.ww-managed.dockerignore' >&2; \
+      exit 1; \
+    fi
+RUN pnpm --filter ./apps/backend run build:managed-runtime
+
+FROM ${WW_MANAGED_NODE_IMAGE} AS runtime
+# tini is PID 1: it forwards SIGTERM to node and reaps children, so a signal
+# during startup is not ignored
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    openssl \
+    tini \
+&& rm -rf /var/lib/apt/lists/*
+
+ENV NODE_ENV=production \
+    TZ=UTC \
+    CHECKPOINT_DISABLE=1 \
+    PRISMA_HIDE_UPDATE_MESSAGE=1 \
+    POSTIZ_MANAGED_RUNTIME_HOST=0.0.0.0 \
+    PORT=3000 \
+    STORAGE_PROVIDER=local \
+    UPLOAD_DIRECTORY=/data/uploads
+
+WORKDIR /app
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/backend/dist-managed-runtime ./apps/backend/dist-managed-runtime
+
+# Only for the explicit, operator-run schema step of a new empty database
+# (scripts/managed-runtime-schema.mjs); nothing runs them at startup. The local
+# test harness is not in the image
+COPY --from=build /app/libraries/nestjs-libraries/src/database/prisma/schema.prisma ./libraries/nestjs-libraries/src/database/prisma/schema.prisma
+COPY scripts/managed-runtime-schema.mjs scripts/managed-runtime-baseline.sql ./scripts/
+
+# The mount point of the private persistent volume. The storage marker is
+# deliberately not created here: without the mounted, initialized volume the
+# runtime refuses to start
+RUN mkdir -p /data/uploads && chown node:node /data/uploads && chmod 700 /data/uploads
+
+USER node
+EXPOSE 3000
+
+# The runtime renews its lease until the app has closed, then releases it
+# (deadline 20 s). Run with a stop grace period of at least 30 s
+# (docker run --stop-timeout 30, compose stop_grace_period: 30s); Docker's
+# default of 10 s kills it before the release
+STOPSIGNAL SIGTERM
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/managed-runtime/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["node", "--experimental-require-module", "apps/backend/dist-managed-runtime/apps/backend/src/managed-runtime/main.js"]

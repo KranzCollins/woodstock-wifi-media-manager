@@ -26,6 +26,8 @@ import {
   getMaxSize,
   uploadStreamToStorage,
 } from '@gitroom/nestjs-libraries/upload/custom.upload.validation';
+import { isManagedOrganization } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.mode';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 
 // What every upload is normalized to before a provider ever sees it. The
 // service applies exactly these, so a platform-specific need belongs in the
@@ -107,6 +109,8 @@ export class MediaService {
     org: Organization,
     generatePromptFirst?: boolean
   ) {
+    refuseManagedEffect(org.id, 'AI image generation');
+
     try {
       const generating = await this._subscriptionService.useCredit(
         org,
@@ -130,6 +134,10 @@ export class MediaService {
   // and a few upload parts are ever in memory, so a 1 GB video does not cost
   // 1 GB of heap
   async uploadFromUrl(org: string, url: string, adjust?: boolean) {
+    // the fetch and the stored file would happen before the media row is
+    // refused; managed media only arrives through the managed upload
+    refuseManagedEffect(org, 'uploading media from a URL');
+
     let response: globalThis.Response;
     try {
       response = await fetch(url, {
@@ -360,6 +368,13 @@ export class MediaService {
       return null;
     }
 
+    // the processor rewrites the stored object in place; for a W&W managed
+    // organization nothing is submitted and the record is left as it is
+    // (not ready, so it can't be used in a managed draft either)
+    if (isManagedOrganization(media.organizationId)) {
+      return null;
+    }
+
     const processable = PROCESSABLE[extname(media.name).toLowerCase()];
     if (
       !this.processor ||
@@ -401,6 +416,12 @@ export class MediaService {
     // a retried activity after the record was already finalized must not
     // derive the output key a second time from the rewritten name
     if (media.status !== 'processing') {
+      return true;
+    }
+
+    // a job submitted before the enrollment is not followed up: its result
+    // would be written into a managed organization's media
+    if (isManagedOrganization(media.organizationId)) {
       return true;
     }
 
@@ -478,7 +499,7 @@ export class MediaService {
 
   async failProcessing(mediaId: string, error: string) {
     const media = await this._mediaRepository.getMediaById(mediaId);
-    if (!media) {
+    if (!media || isManagedOrganization(media.organizationId)) {
       return;
     }
 
@@ -549,6 +570,8 @@ export class MediaService {
   }
 
   async generateVideo(org: Organization, body: VideoDto) {
+    refuseManagedEffect(org.id, 'AI video generation');
+
     try {
       const video = await this.validateVideoRequest(org, body);
 
@@ -573,6 +596,8 @@ export class MediaService {
   // Generating a video takes minutes, longer than an MCP request can stay open,
   // so the generation runs in a workflow and the caller polls its status by job id
   async startGenerateVideo(org: Organization, body: VideoDto) {
+    refuseManagedEffect(org.id, 'AI video generation');
+
     // validated here as well as in the workflow so bad input fails before a job exists
     try {
       await this.validateVideoRequest(org, body);
@@ -650,7 +675,14 @@ export class MediaService {
     }
   }
 
-  async videoFunction(identifier: string, functionName: string, body: any) {
+  async videoFunction(
+    orgId: string,
+    identifier: string,
+    functionName: string,
+    body: any
+  ) {
+    refuseManagedEffect(orgId, 'calling a video provider function');
+
     const video = this._videoManager.getVideoByName(identifier);
     if (!video) {
       throw new Error(`Video with identifier ${identifier} not found`);

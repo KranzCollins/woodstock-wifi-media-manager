@@ -24,6 +24,7 @@ import {
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 
 @ApiTags('Integrations')
 @Controller('/integrations')
@@ -73,6 +74,10 @@ export class NoAuthIntegrationsController {
     if (!organization) {
       throw new Error('Organization not found');
     }
+
+    // before the code is exchanged: a W&W managed organization's channel
+    // can't be stored afterwards, and a rotated token would be lost
+    refuseManagedEffect(organization, 'connecting or reconnecting a channel');
 
     const org = await this._organizationService.getOrgById(organization);
 
@@ -391,6 +396,8 @@ export class NoAuthIntegrationsController {
     ) {
       throw new HttpException('Invalid token payload', 400);
     }
+
+    refuseManagedEffect(organizationId, 'refreshing a channel');
 
     const integration = await this._integrationService.getIntegrationById(
       organizationId,

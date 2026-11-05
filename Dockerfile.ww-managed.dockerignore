@@ -1,0 +1,38 @@
+# Build context of Dockerfile.ww-managed only (BuildKit uses this file instead
+# of the root .dockerignore). An allowlist: everything is excluded, then exactly
+# what the Dockerfile copies is let back in, then secrets, build output and
+# tests are excluded again inside it. Later lines win.
+*
+
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
+!tsconfig.base.json
+!tsconfig.json
+!apps/backend
+!apps/commands/package.json
+!apps/extension/package.json
+!apps/frontend/package.json
+!apps/orchestrator/package.json
+!apps/sdk/package.json
+!libraries
+!scripts/managed-runtime-schema.mjs
+!scripts/managed-runtime-baseline.sql
+
+**/node_modules
+**/.git
+**/.env
+**/.env.*
+**/.secrets
+**/*.pem
+**/*.key
+**/dist
+**/dist-managed-runtime
+**/*.tsbuildinfo
+**/.nx
+**/coverage
+**/reports
+**/__tests__
+**/*.spec.ts
+**/*.test.ts

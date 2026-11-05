@@ -11,6 +11,7 @@ import { RefreshToken } from '@gitroom/nestjs-libraries/integrations/social.abst
 import { timer } from '@gitroom/helpers/utils/timer';
 import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 
 @Injectable()
 export class IntegrationTriggerTool implements AgentToolInterface {
@@ -62,6 +63,8 @@ export class IntegrationTriggerTool implements AgentToolInterface {
         const organizationId = JSON.parse(
           (context?.requestContext as any)?.get('organization') as string
         ).id;
+
+        refuseManagedEffect(organizationId, 'calling a channel tool');
 
         const getIntegration =
           await this._integrationService.getIntegrationById(

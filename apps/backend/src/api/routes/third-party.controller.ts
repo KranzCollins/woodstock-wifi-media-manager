@@ -15,6 +15,7 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { ImportMediaDto } from '@gitroom/nestjs-libraries/dtos/third-party/import-media.dto';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 
 @ApiTags('Third Party')
 @Controller('/third-party')
@@ -57,6 +58,7 @@ export class ThirdPartyController {
     @GetOrgFromRequest() organization: Organization,
     @Param('id') id: string
   ) {
+    refuseManagedEffect(organization.id, 'removing a third-party service');
     return this._thirdPartyManager.deleteIntegration(organization.id, id);
   }
 
@@ -66,6 +68,8 @@ export class ThirdPartyController {
     @Param('id') id: string,
     @Body() data: any
   ) {
+    refuseManagedEffect(organization.id, 'third-party media generation');
+
     const thirdParty = await this._thirdPartyManager.getIntegrationById(
       organization.id,
       id
@@ -99,6 +103,8 @@ export class ThirdPartyController {
     @Param('functionName') functionName: string,
     @Body() data: any
   ) {
+    refuseManagedEffect(organization.id, 'calling a third-party function');
+
     const thirdParty = await this._thirdPartyManager.getIntegrationById(
       organization.id,
       id
@@ -128,6 +134,8 @@ export class ThirdPartyController {
     @Param('id') id: string,
     @Body() body: ImportMediaDto
   ) {
+    refuseManagedEffect(organization.id, 'importing third-party media');
+
     const thirdParty = await this._thirdPartyManager.getIntegrationById(
       organization.id,
       id
@@ -174,6 +182,10 @@ export class ThirdPartyController {
     @Param('identifier') identifier: string,
     @Body('api') api: string
   ) {
+    // checkConnection calls the vendor with the key, and ThirdParty rows are
+    // not behind the write fence
+    refuseManagedEffect(organization.id, 'connecting a third-party service');
+
     const thirdParty = this._thirdPartyManager.getThirdPartyByName(identifier);
     if (!thirdParty) {
       throw new HttpException('Invalid identifier', 400);

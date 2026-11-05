@@ -120,11 +120,20 @@ export class SubscriptionService {
     );
     const currentTotalChannels = allChannels.filter((f) => !f.disabled);
 
+    // channel writes can be refused (W&W managed organizations); the rest of
+    // the subscription change must still be applied
     if (currentTotalChannels.length > totalChannels) {
-      await this._integrationService.disableIntegrations(
-        organizationId,
-        currentTotalChannels.length - totalChannels
-      );
+      try {
+        await this._integrationService.disableIntegrations(
+          organizationId,
+          currentTotalChannels.length - totalChannels
+        );
+      } catch (err) {
+        console.error(
+          'Error disabling channels after subscription change:',
+          err
+        );
+      }
     }
 
     // channels are auto-disabled when a subscription lapses; once the new plan
@@ -162,7 +171,14 @@ export class SubscriptionService {
     }
 
     if (billing === 'FREE') {
-      await this._integrationService.changeActiveCron(organizationId);
+      try {
+        await this._integrationService.changeActiveCron(organizationId);
+      } catch (err) {
+        console.error(
+          'Error changing the active cron after subscription change:',
+          err
+        );
+      }
     }
 
     return true;
@@ -202,11 +218,20 @@ export class SubscriptionService {
     );
     const currentTotalChannels = allChannels.filter((f) => !f.disabled);
 
+    // channel writes can be refused (W&W managed organizations); the rest of
+    // the subscription change must still be applied
     if (currentTotalChannels.length > totalChannels) {
-      await this._integrationService.disableIntegrations(
-        getOrgByCustomerId?.id!,
-        currentTotalChannels.length - totalChannels
-      );
+      try {
+        await this._integrationService.disableIntegrations(
+          getOrgByCustomerId?.id!,
+          currentTotalChannels.length - totalChannels
+        );
+      } catch (err) {
+        console.error(
+          'Error disabling channels after subscription change:',
+          err
+        );
+      }
     }
 
     // channels are auto-disabled when a subscription lapses; once the new plan
@@ -246,7 +271,16 @@ export class SubscriptionService {
     }
 
     if (billing === 'FREE') {
-      await this._integrationService.changeActiveCron(getOrgByCustomerId?.id!);
+      try {
+        await this._integrationService.changeActiveCron(
+          getOrgByCustomerId?.id!
+        );
+      } catch (err) {
+        console.error(
+          'Error changing the active cron after subscription change:',
+          err
+        );
+      }
     }
 
     return true;

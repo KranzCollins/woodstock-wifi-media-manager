@@ -59,6 +59,8 @@ import { GetOrgActivityDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.
 import { ResetCreditsDto } from '@gitroom/nestjs-libraries/dtos/billing/reset.credits.dto';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import dayjs from 'dayjs';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
+import { RefuseManagedEffect } from '@gitroom/backend/services/auth/managed.effect.guard';
 
 @ApiTags('Public API')
 @Controller('/public/v1')
@@ -78,6 +80,7 @@ export class PublicIntegrationsController {
   ) {}
 
   @Post('/upload')
+  @RefuseManagedEffect('uploading media')
   @UseInterceptors(FileInterceptor('file', streamUploadOptions()))
   async uploadSimple(
     @GetOrgFromRequest() org: Organization,
@@ -510,9 +513,13 @@ export class PublicIntegrationsController {
   }
 
   @Post('/video/function')
-  videoFunction(@Body() body: VideoFunctionDto) {
+  videoFunction(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: VideoFunctionDto
+  ) {
     Sentry.metrics.count('public_api-request', 1);
     return this._mediaService.videoFunction(
+      org.id,
       body.identifier,
       body.functionName,
       body.params
@@ -686,6 +693,8 @@ export class PublicIntegrationsController {
     @Body() body: { methodName: string; data: Record<string, string> }
   ) {
     Sentry.metrics.count('public_api-request', 1);
+    refuseManagedEffect(org.id, 'calling a channel tool');
+
     const getIntegration = await this._integrationService.getIntegrationById(
       org.id,
       id

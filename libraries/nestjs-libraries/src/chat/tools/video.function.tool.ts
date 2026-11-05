@@ -5,6 +5,7 @@ import { VideoManager } from '@gitroom/nestjs-libraries/videos/video.manager';
 import z from 'zod';
 import { ModuleRef } from '@nestjs/core';
 import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 
 @Injectable()
 export class VideoFunctionTool implements AgentToolInterface {
@@ -34,6 +35,12 @@ export class VideoFunctionTool implements AgentToolInterface {
       outputSchema: z.object({}).passthrough(),
       execute: async (inputData, context) => {
         checkAuth(inputData, context);
+        const organizationId = JSON.parse(
+          (context?.requestContext as any)?.get('organization') as string
+        ).id;
+
+        refuseManagedEffect(organizationId, 'calling a video provider function');
+
         const videos = this._videoManagerService.getAllVideos();
         const findVideo = videos.find(
           (p) =>

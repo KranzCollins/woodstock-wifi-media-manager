@@ -32,12 +32,18 @@ const ClipsPrompt = z.object({
 @Injectable()
 export class OpenaiService {
   // The model answers with line numbers and not times, so a clip can only
-  // start and end where the transcript really has a boundary
+  // start and end where the transcript really has a boundary. A caller that
+  // must bound reading the answer too passes a signal (see generateImage)
   async pickClips(
     title: string,
     language: string,
     segments: { start: number; end: number; text: string }[],
-    maxClips: number
+    maxClips: number,
+    requestOptions?: {
+      maxRetries?: number;
+      timeout?: number;
+      signal?: AbortSignal;
+    }
   ) {
     const { clips } = (
       await openai.chat.completions.parse(
@@ -68,22 +74,37 @@ Clips must not overlap. Write the title and the post in this language, whatever 
         },
         // shorter than the activity: an attempt that was given up on must not
         // still be running, and storing clips, when its retry gets there
-        { timeout: 8 * 60 * 1000, maxRetries: 0 }
+        { timeout: 8 * 60 * 1000, maxRetries: 0, ...requestOptions }
       )
     ).choices[0].message.parsed || { clips: [] };
 
     return clips;
   }
 
-  async generateImage(prompt: string, isVertical = false) {
+  // Without requestOptions the client defaults apply (openai 6.27.0: two
+  // retries on a lost connection, 408, 409, 429 and 5xx, a 10 minute timeout
+  // that ends when the headers arrive). A caller that must not pay twice
+  // passes maxRetries: 0 and a signal that also bounds reading the answer
+  async generateImage(
+    prompt: string,
+    isVertical = false,
+    requestOptions?: {
+      maxRetries?: number;
+      timeout?: number;
+      signal?: AbortSignal;
+    }
+  ) {
     // gpt-image models always return base64 (b64_json) and do not accept the
     // `response_format` parameter, unlike the deprecated dall-e-3.
     const generate = (
-      await openai.images.generate({
-        prompt,
-        model: 'chatgpt-image-latest',
-        size: isVertical ? '1024x1536' : '1024x1024',
-      })
+      await openai.images.generate(
+        {
+          prompt,
+          model: 'chatgpt-image-latest',
+          size: isVertical ? '1024x1536' : '1024x1024',
+        },
+        requestOptions
+      )
     ).data[0];
 
     return generate.b64_json;
@@ -284,41 +305,57 @@ Clips must not overlap. Write the title and the post in this language, whatever 
     };
   }
 
+  // One request that throws on failure. Without requestOptions the client
+  // defaults apply (see generateImage); a caller that must not pay twice passes
+  // maxRetries: 0 and a signal that also bounds reading the answer
+  async slidesFromTextOnce(
+    text: string,
+    requestOptions?: {
+      maxRetries?: number;
+      timeout?: number;
+      signal?: AbortSignal;
+    }
+  ) {
+    const message = `You are an assistant that takes a text and break it into slides, each slide should have an image prompt and voice text to be later used to generate a video and voice, image prompt should capture the essence of the slide and also have a back dark gradient on top, image prompt should not contain text in the picture, generate between 3-5 slides maximum`;
+    return (
+      (
+        await openai.chat.completions.parse(
+          {
+            model: 'gpt-4.1',
+            messages: [
+              {
+                role: 'system',
+                content: message,
+              },
+              {
+                role: 'user',
+                content: text,
+              },
+            ],
+            response_format: zodResponseFormat(
+              z.object({
+                slides: z
+                  .array(
+                    z.object({
+                      imagePrompt: z.string(),
+                      voiceText: z.string(),
+                    })
+                  )
+                  .describe('an array of slides'),
+              }),
+              'slides'
+            ),
+          },
+          requestOptions
+        )
+      ).choices[0].message.parsed?.slides || []
+    );
+  }
+
   async generateSlidesFromText(text: string) {
     for (let i = 0; i < 3; i++) {
       try {
-        const message = `You are an assistant that takes a text and break it into slides, each slide should have an image prompt and voice text to be later used to generate a video and voice, image prompt should capture the essence of the slide and also have a back dark gradient on top, image prompt should not contain text in the picture, generate between 3-5 slides maximum`;
-        const parse =
-          (
-            await openai.chat.completions.parse({
-              model: 'gpt-4.1',
-              messages: [
-                {
-                  role: 'system',
-                  content: message,
-                },
-                {
-                  role: 'user',
-                  content: text,
-                },
-              ],
-              response_format: zodResponseFormat(
-                z.object({
-                  slides: z
-                    .array(
-                      z.object({
-                        imagePrompt: z.string(),
-                        voiceText: z.string(),
-                      })
-                    )
-                    .describe('an array of slides'),
-                }),
-                'slides'
-              ),
-            })
-          ).choices[0].message.parsed?.slides || [];
-
-        return parse;
+        return await this.slidesFromTextOnce(text);
       } catch (err) {
         console.log(err);
       }

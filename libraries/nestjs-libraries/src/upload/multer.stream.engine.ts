@@ -3,23 +3,40 @@ import { StorageEngine } from 'multer';
 import { Readable } from 'stream';
 import { IUploadProvider } from './upload.interface';
 import { UploadFactory } from './upload.factory';
-import { getMaxSize, uploadStreamToStorage } from './custom.upload.validation';
+import {
+  digestStream,
+  getMaxSize,
+  uploadStreamToStorage,
+} from './custom.upload.validation';
+
+// Set on the file by the capture engine: the digest of the exact bytes that
+// were streamed into storage
+export type CapturedUploadFile = Express.Multer.File & {
+  capturedDigest?: { sha256: string; byteLength: number };
+};
 
 // Multer storage engine that streams each incoming file straight into
 // storage instead of multer's default of buffering it whole in memory.
 // `file.filename` / `file.path` end up as the stored key and public URL,
 // `file.originalname` keeps the sender's name with the detected extension
 export class MulterStreamEngine implements StorageEngine {
-  constructor(private storage: IUploadProvider) {}
+  constructor(
+    private storage: IUploadProvider,
+    private captureDigest = false
+  ) {}
 
   _handleFile(
     req: Request,
     file: Express.Multer.File,
-    cb: (error?: any, info?: Partial<Express.Multer.File>) => void
+    cb: (error?: any, info?: Partial<CapturedUploadFile>) => void
   ) {
+    const capture = this.captureDigest ? digestStream() : undefined;
+
     uploadStreamToStorage(
       this.storage,
-      Readable.toWeb(file.stream) as any
+      Readable.toWeb(file.stream) as any,
+      0,
+      capture?.transform
     ).then(
       (uploaded) => {
         const safeBase =
@@ -32,6 +49,7 @@ export class MulterStreamEngine implements StorageEngine {
           path: uploaded.path,
           mimetype: uploaded.mimetype,
           originalname: `${safeBase}.${uploaded.ext}`,
+          ...(capture ? { capturedDigest: capture.digest() } : {}),
         });
       },
       (err) => cb(err)
@@ -63,5 +81,19 @@ export function streamUploadOptions() {
   return {
     storage: engine,
     limits: { fileSize: getMaxSize('video/mp4') + 1 },
+  };
+}
+
+let captureEngine: MulterStreamEngine;
+
+// Same as streamUploadOptions, and the file also carries capturedDigest.
+// Used by the W&W managed media upload
+export function captureUploadOptions() {
+  captureEngine =
+    captureEngine ||
+    new MulterStreamEngine(UploadFactory.createStorage(), true);
+  return {
+    storage: captureEngine,
+    limits: { fileSize: getMaxSize('video/mp4') + 1, files: 1 },
   };
 }
