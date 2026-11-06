@@ -1,39 +1,84 @@
 {
-  "verifiedAt": "2026-11-05T10:47:32.750117+00:00",
+  "verifiedAt": "2026-11-06T11:08:26.279364+00:00",
   "deployed": false,
-  "sourceCommit": "5cd0317f7e9a98cce5ad59af3b18d598ce3fbc07",
-  "imageId": "sha256:fd2f8a130f195c598ee7db9a36f2145e1b6d622f0134c49968565c714321a2a9",
-  "manifestDigest": "sha256:fd2f8a130f195c598ee7db9a36f2145e1b6d622f0134c49968565c714321a2a9",
-  "platformManifestDigest": "sha256:b8da7b1fa046c357cee3e703ffb306eedc9adcff72f6cce36579f19336b9d001",
-  "configDigest": "sha256:940f856dd052d4975e83ed5f7bc2962ccd435f7197979f84578510a0ca290f98",
-  "imageBytes": 809909506,
-  "architecture": "amd64",
+  "sourceCommit": "f71292b5104dfbc27322a2a9631c363040fc8996",
+  "imageId": "sha256:50d2fdb3bd71e5fcdc48cccdcc450f32a54fabbc06c8dfb87b83aaf8f465a277",
+  "manifestDigest": "sha256:50d2fdb3bd71e5fcdc48cccdcc450f32a54fabbc06c8dfb87b83aaf8f465a277",
+  "platformManifestDigest": "sha256:1147a4722dc4da20582cc4fc2528bfafa838d926393044e1b91ba54e7094b134",
+  "configDigest": "sha256:c167f8b281cb94eb2410438a4666d598ca32ff1721e5782e9ba944157eac4e09",
+  "architecture": "arm64",
   "nodeVersion": "22.23.4",
-  "postgresVersion": "18.6",
-  "redisVersion": "8.2.1",
-  "baselineSha256": "015e548d65e5724975307cab0e47f2fbb18a48f66fb1e8f85cdd3d5ade6b48f6",
+  "baselineSha256": "11896755633cc770f4270b2ec30bae440d22ed11d330715be05b940914a83fd3",
   "test": "scripts/managed-runtime-container-test.mjs",
-  "testSha256": "80b41e9f2e1a6aa9a276da74eb8033f18fa58ae57640ba2c9fd9fa33e39e4d18",
   "tests": {
-    "managedUnits": 1008,
-    "suites": 34,
+    "managedUnits": 1921,
+    "suites": 44,
     "productionBuild": "PASS",
-    "container": "PASS"
+    "container": "PASS",
+    "realProductionModuleWithIsolatedProvider": "PASS",
+    "fullWwWorkerHttpProviderReturnRoute": "PASS"
+  },
+  "sourceBinding": {
+    "method": "Exact compiled runtime, Prisma schema and bootstrap files match the qualified local production build. Image has no revision label; source binding is this byte comparison and task source manifest.",
+    "compiledAndBootstrapFiles": 402,
+    "contentSha256": "0f998e293574452d344c468c29748e50c6ab5acf2295bb1eb128442699e5d79a",
+    "revisionLabel": null
   },
   "scope": "isolated local Docker only; synthetic identities and private PNG; internal network, no host ports or provider traffic",
   "verified": [
-    "schema bootstrap and exact source revision label",
     "non-root read-only runtime with private persistent volume",
     "health/readiness, authentication, covered competing routes absent",
     "byte-identical PNG and upload receipt after restart",
     "shared 200 requests/hour counter survives restart",
-    "graceful SIGTERM exit0 and lease release"
+    "graceful SIGTERM exit0 and lease release",
+    "schema bootstrap and exact source-bound compiled runtime byte comparison"
   ],
   "limits": [
     "Not hosted; no TLS/proxy or backup restore qualification",
     "No account login/reconnection or upstream identity claim",
     "No paid provider execution; kind/consent gates remain OFF",
-    "Later documentation commits are not the image source"
+    "Later documentation commits are not the image source",
+    "ARM64 only; another architecture requires its own build and qualification",
+    "Accepted is not published; unknown sends are held, not blindly repeated",
+    "20-second shutdown deadline can interrupt an already admitted long provider call; unknown outcomes remain retained"
   ],
-  "previousImage": "sha256:2f14d4a775e3dce71d3c61ae3e28fbe4e0fc2b447cf274d145ac6dc14bd2123c"
+  "previousQualification": {
+    "verifiedAt": "2026-11-05T10:47:32.750117+00:00",
+    "deployed": false,
+    "sourceCommit": "5cd0317f7e9a98cce5ad59af3b18d598ce3fbc07",
+    "imageId": "sha256:fd2f8a130f195c598ee7db9a36f2145e1b6d622f0134c49968565c714321a2a9",
+    "manifestDigest": "sha256:fd2f8a130f195c598ee7db9a36f2145e1b6d622f0134c49968565c714321a2a9",
+    "platformManifestDigest": "sha256:b8da7b1fa046c357cee3e703ffb306eedc9adcff72f6cce36579f19336b9d001",
+    "configDigest": "sha256:940f856dd052d4975e83ed5f7bc2962ccd435f7197979f84578510a0ca290f98",
+    "imageBytes": 809909506,
+    "architecture": "amd64",
+    "nodeVersion": "22.23.4",
+    "postgresVersion": "18.6",
+    "redisVersion": "8.2.1",
+    "baselineSha256": "015e548d65e5724975307cab0e47f2fbb18a48f66fb1e8f85cdd3d5ade6b48f6",
+    "test": "scripts/managed-runtime-container-test.mjs",
+    "testSha256": "80b41e9f2e1a6aa9a276da74eb8033f18fa58ae57640ba2c9fd9fa33e39e4d18",
+    "tests": {
+      "managedUnits": 1008,
+      "suites": 34,
+      "productionBuild": "PASS",
+      "container": "PASS"
+    },
+    "scope": "isolated local Docker only; synthetic identities and private PNG; internal network, no host ports or provider traffic",
+    "verified": [
+      "schema bootstrap and exact source revision label",
+      "non-root read-only runtime with private persistent volume",
+      "health/readiness, authentication, covered competing routes absent",
+      "byte-identical PNG and upload receipt after restart",
+      "shared 200 requests/hour counter survives restart",
+      "graceful SIGTERM exit0 and lease release"
+    ],
+    "limits": [
+      "Not hosted; no TLS/proxy or backup restore qualification",
+      "No account login/reconnection or upstream identity claim",
+      "No paid provider execution; kind/consent gates remain OFF",
+      "Later documentation commits are not the image source"
+    ],
+    "previousImage": "sha256:2f14d4a775e3dce71d3c61ae3e28fbe4e0fc2b447cf274d145ac6dc14bd2123c"
+  }
 }
