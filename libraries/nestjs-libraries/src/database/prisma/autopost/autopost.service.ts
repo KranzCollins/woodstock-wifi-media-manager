@@ -19,6 +19,7 @@ import { TypedSearchAttributes } from '@temporalio/common';
 import {
   organizationId,
 } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
+import { isManagedOrganization } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.mode';
 const parser = new Parser();
 
 interface WorkflowChannelsState {
@@ -317,7 +318,13 @@ export class AutopostService {
 
   async startAutopost(id: string) {
     const getPost = await this._autopostsRepository.getAutopost(id);
-    if (!getPost || !getPost.active) {
+    // W&W managed organizations: no feed fetch, no AI text or picture and no
+    // post; the post write would only be refused after they were paid for
+    if (
+      !getPost ||
+      !getPost.active ||
+      isManagedOrganization(getPost.organizationId)
+    ) {
       return;
     }
 

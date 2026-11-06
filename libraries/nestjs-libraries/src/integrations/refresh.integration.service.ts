@@ -7,6 +7,7 @@ import {
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { TemporalService } from 'nestjs-temporal-core';
+import { isManagedOrganization } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.mode';
 
 @Injectable()
 export class RefreshIntegrationService {
@@ -17,6 +18,12 @@ export class RefreshIntegrationService {
     private _temporalService: TemporalService
   ) {}
   async refresh(integration: Integration, cause = ''): Promise<false | AuthTokenDetails> {
+    // W&W managed organizations never call the provider (no refresh, no
+    // reconnect): report it like a refresh that did not succeed
+    if (isManagedOrganization(integration.organizationId)) {
+      return false as const;
+    }
+
     const socialProvider = this._integrationManager.getSocialIntegration(
       integration.providerIdentifier
     );

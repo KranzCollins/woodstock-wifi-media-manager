@@ -29,6 +29,18 @@ import {
   Sections,
   SubscriptionException,
 } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
+import { isManagedOrganization } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.mode';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
+import {
+  analyseOutcome,
+  buildAnalyseJob,
+  buildClipFetchJob,
+  buildClipRenderJob,
+  clipCaptionWords,
+  clipFetchOutcome,
+  clipRenderOutcome,
+  selectClips,
+} from '@gitroom/nestjs-libraries/managed-creative/clipping-builders';
 
 // A reason retrying can't change (private video, no minutes left, no speech):
 // the workflow stops and the message is what the customer reads
@@ -38,16 +50,16 @@ export class ClippingStop extends ApplicationFailure {
   }
 }
 
+// W&W managed organizations never reach the ingest, transcriber, model or
+// renderer, also for a clipping that was started before the enrollment
+const MANAGED_CLIPPING_REFUSED =
+  'This organization is managed by W&W: clipping is refused';
+
 // Answer of a job poll. "retry" is a failure the media service marked as
 // retryable (or a crashed job), so the workflow submits the job again
 export type ClippingJobState = 'pending' | 'retry' | 'done' | 'failed';
 
 const CREDITS_TYPE = 'clipping_minutes';
-// Oxylabs only cuts on whole seconds, so the window is fetched a little wider
-// and the clip job makes the exact cut inside it
-const WINDOW_PADDING = 2;
-const MIN_CLIP_SECONDS = 10;
-const MAX_CLIP_SECONDS = 90;
 // Longer than this no plan pays for, and the transcript stops fitting one prompt
 const MAX_SOURCE_MINUTES = 180;
 // Every clipping costs real money before its minutes are charged, so an
@@ -177,6 +189,8 @@ export class ClippingService {
   }
 
   async startClipping(org: Organization, body: ClippingDto) {
+    refuseManagedEffect(org.id, 'clipping');
+
     if (
       !this.ingest ||
       !this.clipper ||
@@ -396,6 +410,10 @@ export class ClippingService {
       throw new ClippingStop('Clipping not found');
     }
 
+    if (isManagedOrganization(clipping.organizationId)) {
+      throw new ClippingStop(MANAGED_CLIPPING_REFUSED);
+    }
+
     const minutes = Math.min(
       await this.balance(clipping.organizationId),
       MAX_SOURCE_MINUTES
@@ -410,28 +428,22 @@ export class ClippingService {
     // so this time only the audio is asked for
     const audioOnly = clipping.status === 'transcribing';
     const keys = this.keys(clippingId);
-    return this.ingest!.submit({
-      version: 1,
-      type: 'ingest',
-      reference: clippingId,
-      source: { url: clipping.url, via: 'oxylabs' },
-      ...(audioOnly
-        ? {}
-        : {
-            transcript: {
-              url: await this.storage.signUploadUrl!(
-                keys.transcript,
-                'application/json'
-              ),
-              languages: ['en'],
-            },
-          }),
-      audio: {
-        url: await this.storage.signUploadUrl!(keys.audio, 'audio/ogg'),
-        unless_transcript: !audioOnly,
-      },
-      limits: { max_duration_seconds: minutes * 60 },
-    });
+    const transcriptUploadUrl = audioOnly
+      ? undefined
+      : await this.storage.signUploadUrl!(keys.transcript, 'application/json');
+    return this.ingest!.submit(
+      buildAnalyseJob({
+        reference: clippingId,
+        url: clipping.url,
+        audioOnly,
+        transcriptUploadUrl,
+        audioUploadUrl: await this.storage.signUploadUrl!(
+          keys.audio,
+          'audio/ogg'
+        ),
+        maxDurationSeconds: minutes * 60,
+      })
+    );
   }
 
   // A video that can't be analysed stops the whole clipping, so this throws
@@ -447,58 +459,44 @@ export class ClippingService {
       throw new ClippingStop('Clipping not found');
     }
 
-    const job = await this.ingest!.status(jobId);
-    if (job.status === 'pending') {
-      return { state: 'pending' };
-    }
-
-    if (job.status === 'failed') {
-      return { state: 'retry' };
-    }
-
-    const { result } = job;
-    if (result?.status === 'failed') {
-      if (result.failure?.retryable) {
-        return { state: 'retry' };
-      }
-
-      if (result.failure?.code === 'DURATION_TOO_LONG') {
+    const outcome = analyseOutcome(await this.ingest!.status(jobId));
+    switch (outcome.state) {
+      case 'pending':
+      case 'retry':
+        return { state: outcome.state };
+      case 'too_long':
         throw new ClippingStop(
           `This video is ${Math.ceil(
-            (result.source?.duration_seconds || 0) / 60
+            outcome.durationSeconds / 60
           )} minutes long. It has to fit the clipping minutes left on this account for this month, and ${MAX_SOURCE_MINUTES} minutes at most.`
         );
-      }
-
-      throw new ClippingStop(this.failureMessage(result.failure));
-    }
-
-    const duration = result?.source?.duration_seconds;
-    if (result?.status !== 'completed' || !duration) {
-      console.error('Unexpected analyse result:', JSON.stringify(result));
-      throw new ClippingStop(SOMETHING_WENT_WRONG);
-    }
-
-    if (!result.transcript && !result.audio) {
-      throw new ClippingStop('This video has no captions and no audio.');
-    }
-
-    // Only YouTube's own captions are in the language that is spoken. An
-    // uploaded track can be a translation (English subtitles on a Spanish talk)
-    // and nothing in the answer tells the two apart, so the job is submitted
-    // again for the audio and the transcriber finds the language itself
-    if (result.transcript && result.transcript.origin !== 'auto_generated') {
-      await this._clippingRepository.updateClipping(
-        clipping.organizationId,
-        clippingId,
-        { status: 'transcribing' }
-      );
-      return { state: 'retry' };
+      case 'failed':
+        throw new ClippingStop(this.failureMessage(outcome.failure));
+      case 'unexpected':
+        console.error(
+          'Unexpected analyse result:',
+          JSON.stringify(outcome.result)
+        );
+        throw new ClippingStop(SOMETHING_WENT_WRONG);
+      case 'empty':
+        throw new ClippingStop('This video has no captions and no audio.');
+      // Only YouTube's own captions are in the language that is spoken. An
+      // uploaded track can be a translation (English subtitles on a Spanish
+      // talk) and nothing in the answer tells the two apart, so the job is
+      // submitted again for the audio and the transcriber finds the language
+      case 'captions_untrusted':
+        await this._clippingRepository.updateClipping(
+          clipping.organizationId,
+          clippingId,
+          { status: 'transcribing' }
+        );
+        return { state: 'retry' };
     }
 
     // Charged first and checked after: the clipping id is the id of the charge,
     // so a retried poll charges once and reads the same balance, and two
     // clippings racing each other are both counted before either is let through
+    const duration = outcome.durationSeconds;
     const minutes = Math.ceil(duration / 60);
     const credits = (
       await this._subscriptionService.chargeCredits(
@@ -519,17 +517,15 @@ export class ClippingService {
       clipping.organizationId,
       clippingId,
       {
-        title: result.source?.title || clipping.url,
-        ...(result.source?.thumbnail_url
-          ? { thumbnail: result.source.thumbnail_url }
-          : {}),
+        title: outcome.title || clipping.url,
+        ...(outcome.thumbnailUrl ? { thumbnail: outcome.thumbnailUrl } : {}),
         // rounded up, the window of the last clip must reach the real end
         duration: Math.ceil(duration),
         creditsId: credits,
       }
     );
 
-    return { state: 'done', transcribe: !result.transcript };
+    return { state: 'done', transcribe: outcome.transcribe };
   }
 
   // The video has no captions: the transcriber fetches the audio itself and the
@@ -538,6 +534,10 @@ export class ClippingService {
     const clipping = await this._clippingRepository.getClippingById(clippingId);
     if (!clipping) {
       throw new ClippingStop('Clipping not found');
+    }
+
+    if (isManagedOrganization(clipping.organizationId)) {
+      throw new ClippingStop(MANAGED_CLIPPING_REFUSED);
     }
 
     await this._clippingRepository.updateClipping(
@@ -565,6 +565,10 @@ export class ClippingService {
       return clipping.clips.map((clip) => clip.id);
     }
 
+    if (isManagedOrganization(clipping.organizationId)) {
+      throw new ClippingStop(MANAGED_CLIPPING_REFUSED);
+    }
+
     await this._clippingRepository.updateClipping(
       clipping.organizationId,
       clippingId,
@@ -585,46 +589,8 @@ export class ClippingService {
       clipping.maxClips
     );
 
-    const clips = picked
-      .filter(
-        (clip) =>
-          Number.isInteger(clip.from) &&
-          Number.isInteger(clip.to) &&
-          clip.from >= 0 &&
-          clip.to < segments.length &&
-          clip.from <= clip.to
-      )
-      // the model does not always keep to the length it was given: a clip that
-      // runs over ends on the last line that still fits instead of being lost
-      .map((clip) => {
-        let to = clip.to;
-        while (
-          to > clip.from &&
-          segments[to].end - segments[clip.from].start > MAX_CLIP_SECONDS
-        ) {
-          to--;
-        }
-
-        return {
-          title: clip.title,
-          content: clip.content,
-          start: segments[clip.from].start,
-          end: segments[to].end,
-        };
-      })
-      .filter(
-        (clip) =>
-          clip.end - clip.start >= MIN_CLIP_SECONDS &&
-          clip.end - clip.start <= MAX_CLIP_SECONDS
-      )
-      .reduce(
-        (all, clip) =>
-          all.some((p) => clip.start < p.end && p.start < clip.end)
-            ? all
-            : [...all, clip],
-        [] as { title: string; content: string; start: number; end: number }[]
-      )
-      .slice(0, clipping.maxClips);
+    // the model does not always keep to the length it was given
+    const clips = selectClips(segments, picked, clipping.maxClips);
 
     if (!clips.length) {
       throw new ClippingStop('No part of this video works as a short clip.');
@@ -650,29 +616,24 @@ export class ClippingService {
       throw new ClippingStop('Clip not found');
     }
 
-    const end = Math.ceil(clip.end) + WINDOW_PADDING;
-    return this.ingest!.submit({
-      version: 1,
-      type: 'ingest',
-      reference: clipId,
-      source: {
+    if (isManagedOrganization(clip.clipping.organizationId)) {
+      throw new ClippingStop(MANAGED_CLIPPING_REFUSED);
+    }
+
+    return this.ingest!.submit(
+      buildClipFetchJob({
+        reference: clipId,
         url: clip.clipping.url,
-        via: 'oxylabs',
-        // a crop keeps about a third of the width, so it needs the taller rendition to
-        // stay sharp; the whole picture scaled down does not
-        max_height: clip.clipping.fit === 'crop' ? 1080 : 720,
-        start_seconds: Math.max(0, Math.floor(clip.start) - WINDOW_PADDING),
-        end_seconds: clip.clipping.duration
-          ? Math.min(clip.clipping.duration, end)
-          : end,
-      },
-      video: {
-        url: await this.storage.signUploadUrl!(
+        fit: clip.clipping.fit === 'crop' ? 'crop' : 'blur',
+        start: clip.start,
+        end: clip.end,
+        durationSeconds: clip.clipping.duration,
+        videoUploadUrl: await this.storage.signUploadUrl!(
           this.clipKeys(clipId).source,
           'video/mp4'
         ),
-      },
-    });
+      })
+    );
   }
 
   // A clip that can't be fetched is recorded as failed and never throws, the
@@ -686,28 +647,22 @@ export class ClippingService {
       return { state: 'failed' };
     }
 
-    const job = await this.ingest!.status(jobId);
-    if (job.status === 'pending') {
-      return { state: 'pending' };
+    const outcome = clipFetchOutcome(
+      await this.ingest!.status(jobId),
+      clip.start
+    );
+    if (outcome.state === 'pending' || outcome.state === 'retry') {
+      return { state: outcome.state };
     }
 
-    if (job.status === 'failed') {
-      return { state: 'retry' };
-    }
-
-    const { result } = job;
-    if (result?.status === 'failed' && result.failure?.retryable) {
-      return { state: 'retry' };
-    }
-
-    if (result?.status !== 'completed' || !result.video) {
-      if (!result?.failure) {
-        console.error('Unexpected fetch result:', JSON.stringify(result));
+    if (outcome.state === 'failed') {
+      if (!outcome.failure) {
+        console.error('Unexpected fetch result:', JSON.stringify(outcome.result));
       }
       await this.failClip(
         clipId,
-        result?.failure
-          ? this.failureMessage(result.failure)
+        outcome.failure
+          ? this.failureMessage(outcome.failure)
           : 'The clip could not be downloaded',
         true
       );
@@ -716,9 +671,7 @@ export class ClippingService {
 
     // every time of the fetched file is relative to the start of the window
     await this._clippingRepository.updateClip(clipId, {
-      trimStart:
-        result.source?.trim?.start_seconds ??
-        Math.max(0, Math.floor(clip.start) - WINDOW_PADDING),
+      trimStart: outcome.trimStart,
     });
     return { state: 'done' };
   }
@@ -732,25 +685,23 @@ export class ClippingService {
       throw new ClippingStop('Clip not found');
     }
 
+    if (isManagedOrganization(clip.clipping.organizationId)) {
+      throw new ClippingStop(MANAGED_CLIPPING_REFUSED);
+    }
+
     const keys = this.clipKeys(clipId);
     const trimStart = clip.trimStart || 0;
     const transcript = await this.getJson<ClippingTranscript>(
       this.keys(clip.clippingId).transcript
     );
 
-    const words: ClippingWord[] = transcript.word_level
-      ? transcript.words
-          .filter((word) => word.end > clip.start && word.start < clip.end)
-          .map((word) => ({
-            text: word.text,
-            start: Math.max(0, word.start - trimStart),
-            end: Math.max(0, word.end - trimStart),
-          }))
-      : (
-          await this._deepgram.transcribeUrl(
-            await this.storage.signDownloadUrl!(keys.source)
-          )
-        ).words;
+    const words: ClippingWord[] =
+      clipCaptionWords(transcript, clip.start, clip.end, trimStart) ??
+      (
+        await this._deepgram.transcribeUrl(
+          await this.storage.signDownloadUrl!(keys.source)
+        )
+      ).words;
 
     await this.putJson(keys.words, words);
   }
@@ -761,41 +712,36 @@ export class ClippingService {
       throw new ClippingStop('Clip not found');
     }
 
+    if (isManagedOrganization(clip.clipping.organizationId)) {
+      throw new ClippingStop(MANAGED_CLIPPING_REFUSED);
+    }
+
     const keys = this.clipKeys(clipId);
     const trimStart = clip.trimStart || 0;
     const words = await this.getJson<ClippingWord[]>(keys.words);
 
-    return this.clipper!.submit({
-      version: 1,
-      type: 'clip',
-      reference: clipId,
-      source: { url: await this.storage.signDownloadUrl!(keys.source) },
-      clips: [
-        {
-          reference: clipId,
-          start_seconds: Math.max(0, clip.start - trimStart),
-          end_seconds: clip.end - trimStart,
-          output: {
-            url: await this.storage.signUploadUrl!(keys.output, 'video/mp4'),
-          },
-          thumbnail: {
-            url: await this.storage.signUploadUrl!(
-              keys.thumbnail,
-              'image/jpeg'
-            ),
-            timestamp_seconds: 0,
-          },
-        },
-      ],
-      // without face tracking a centre crop can cut the speaker out, the whole
-      // picture over a blurred copy of itself never does, so blur is the default
-      frame: {
-        width: 1080,
-        height: 1920,
+    const sourceUrl = await this.storage.signDownloadUrl!(keys.source);
+    const outputUploadUrl = await this.storage.signUploadUrl!(
+      keys.output,
+      'video/mp4'
+    );
+    return this.clipper!.submit(
+      buildClipRenderJob({
+        reference: clipId,
+        sourceUrl,
+        start: clip.start,
+        end: clip.end,
+        trimStart,
+        outputUploadUrl,
+        thumbnailUploadUrl: await this.storage.signUploadUrl!(
+          keys.thumbnail,
+          'image/jpeg'
+        ),
+        // blur is the default, see buildClipRenderJob
         fit: clip.clipping.fit === 'crop' ? 'crop' : 'blur',
-      },
-      ...(words.length ? { captions: { words } } : {}),
-    });
+        words,
+      })
+    );
   }
 
   async checkClipRender(
@@ -812,29 +758,19 @@ export class ClippingService {
       return { state: 'done' };
     }
 
-    const job = await this.clipper!.status(jobId);
-    if (job.status === 'pending') {
-      return { state: 'pending' };
+    const outcome = clipRenderOutcome(await this.clipper!.status(jobId));
+    if (outcome.state === 'pending' || outcome.state === 'retry') {
+      return { state: outcome.state };
     }
 
-    if (job.status === 'failed') {
-      return { state: 'retry' };
-    }
-
-    const rendered = job.result?.clips?.[0];
-    const failure = rendered?.failure || job.result?.failure;
-    if (rendered?.status !== 'completed' && failure?.retryable) {
-      return { state: 'retry' };
-    }
-
-    if (rendered?.status !== 'completed') {
-      if (!failure) {
-        console.error('Unexpected render result:', JSON.stringify(job.result));
+    if (outcome.state === 'failed') {
+      if (!outcome.failure) {
+        console.error('Unexpected render result:', JSON.stringify(outcome.result));
       }
       await this.failClip(
         clipId,
-        failure
-          ? this.failureMessage(failure)
+        outcome.failure
+          ? this.failureMessage(outcome.failure)
           : 'The clip could not be rendered',
         true
       );
@@ -844,7 +780,7 @@ export class ClippingService {
     const keys = this.clipKeys(clipId);
     const org = clip.clipping.organizationId;
     const path = this.storage.publicUrl!(keys.output);
-    const thumbnail = rendered.thumbnail
+    const thumbnail = outcome.thumbnail
       ? this.storage.publicUrl!(keys.thumbnail)
       : undefined;
 

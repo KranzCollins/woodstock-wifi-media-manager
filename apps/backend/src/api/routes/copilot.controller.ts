@@ -14,6 +14,7 @@ import {
   copilotRuntimeNodeHttpEndpoint,
 } from '@copilotkit/runtime';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 import { Organization } from '@prisma/client';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import { MastraAgent } from '@ag-ui/mastra';
@@ -46,7 +47,8 @@ export class CopilotController {
     private _mastraService: MastraService
   ) {}
   @Post('/chat')
-  chatAgent(@Req() req: Request, @Res() res: Response) {
+  chatAgent(@Req() req: Request, @Res() res: Response, @GetOrgFromRequest() organization: Organization) {
+    refuseManagedEffect(organization.id, 'AI chat');
     if (
       process.env.OPENAI_API_KEY === undefined ||
       process.env.OPENAI_API_KEY === ''
@@ -74,6 +76,7 @@ export class CopilotController {
     @Res() res: Response,
     @GetOrgFromRequest() organization: Organization
   ) {
+    refuseManagedEffect(organization.id, 'AI chat');
     if (
       process.env.OPENAI_API_KEY === undefined ||
       process.env.OPENAI_API_KEY === ''

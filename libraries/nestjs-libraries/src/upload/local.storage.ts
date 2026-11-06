@@ -1,6 +1,20 @@
-import { IUploadProvider, UploadedStream } from './upload.interface';
-import { createWriteStream, mkdirSync, unlink, writeFileSync } from 'fs';
-import { resolve, sep } from 'path';
+import {
+  IUploadProvider,
+  STORAGE_OBJECT_KEY,
+  STORED_OBJECT_KEY,
+  StorageObjectExistsError,
+  UploadedStream,
+} from './upload.interface';
+import {
+  createWriteStream,
+  mkdirSync,
+  Stats,
+  unlink,
+  writeFileSync,
+} from 'fs';
+import { FileHandle, open, realpath, stat } from 'fs/promises';
+import { createHash } from 'crypto';
+import { dirname, resolve, sep } from 'path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
 import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
@@ -136,6 +150,151 @@ export class LocalStorage implements IUploadProvider {
       console.error('Error streaming file to Local Storage:', err);
       throw err;
     }
+  }
+
+  // The file a key names inside the upload directory. The key must name the
+  // file itself: a symlink anywhere below the upload directory, which could
+  // point at another file or outside, rejects. Only the file's own absence
+  // is null: a missing or unreadable upload directory rejects too
+  private async objectLocalPath(key: string) {
+    if (!STORED_OBJECT_KEY.test(key)) {
+      throw new Error('Unsupported object key.');
+    }
+
+    const base = await realpath(resolve(String(this.uploadDirectory)));
+    const filePath = resolve(base + '/' + key);
+    let localPath: string;
+    try {
+      localPath = await realpath(filePath);
+    } catch (err: any) {
+      if (err?.code === 'ENOENT') {
+        return null;
+      }
+      throw err;
+    }
+
+    if (localPath !== filePath || !localPath.startsWith(base + sep)) {
+      throw new Error('Unsafe file path');
+    }
+
+    return localPath;
+  }
+
+  // a rewrite in place changes the times, a replacement the inode
+  private objectVersion(stats: Stats) {
+    return `local:${stats.dev}:${stats.ino}:${stats.size}:${stats.mtimeMs}:${stats.ctimeMs}`;
+  }
+
+  private async statVersion(localPath: string) {
+    try {
+      return this.objectVersion(await stat(localPath));
+    } catch (err: any) {
+      if (err?.code === 'ENOENT') {
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  // the version comes from the open descriptor, so it describes the file
+  // the stream reads even when the path is replaced meanwhile
+  private async openVersioned(localPath: string) {
+    let handle: FileHandle;
+    try {
+      handle = await open(localPath, 'r');
+    } catch (err: any) {
+      if (err?.code === 'ENOENT') {
+        return null;
+      }
+      throw err;
+    }
+
+    try {
+      const version = this.objectVersion(await handle.stat());
+      return { stream: handle.createReadStream() as Readable, version };
+    } catch (err) {
+      await handle.close();
+      throw err;
+    }
+  }
+
+  async openObjectAt(key: string) {
+    const localPath = await this.objectLocalPath(key);
+    return localPath ? this.openVersioned(localPath) : null;
+  }
+
+  async objectVersionAt(key: string) {
+    const localPath = await this.objectLocalPath(key);
+    return localPath ? this.statVersion(localPath) : null;
+  }
+
+  // the directory keys resolve in: another directory, or one put in its
+  // place at the same path, is another namespace even with the same URL
+  async objectNamespace() {
+    const base = await realpath(resolve(String(this.uploadDirectory)));
+    const stats = await stat(base, { bigint: true });
+    if (!stats.isDirectory()) {
+      throw new Error('The upload directory is not a directory');
+    }
+
+    return (
+      'local:' +
+      createHash('sha256')
+        .update(JSON.stringify([base, String(stats.dev), String(stats.ino)]))
+        .digest('hex')
+    );
+  }
+
+  objectPath(key: string) {
+    return process.env.FRONTEND_URL + '/uploads/' + key;
+  }
+
+  // only the public URL form this storage hands out has a key
+  objectKeyOf(filePath: string) {
+    const publicPrefix = process.env.FRONTEND_URL + '/uploads/';
+    if (!filePath.startsWith(publicPrefix)) {
+      return null;
+    }
+
+    const key = filePath.slice(publicPrefix.length);
+    return STORED_OBJECT_KEY.test(key) ? key : null;
+  }
+
+  // 'wx' opens with O_EXCL: an existing file is never truncated or replaced.
+  // The file exists once the open succeeded, before any byte is written. The
+  // signal destroys both streams; a truncated file is left for the caller to
+  // read back and record, never removed here
+  async createObjectAt(
+    key: string,
+    stream: Readable,
+    mimetype: string,
+    _byteLength: number,
+    signal: AbortSignal
+  ) {
+    if (!STORAGE_OBJECT_KEY.test(key) || !LOCAL_STORAGE_ALLOWED_MIME.has(mimetype)) {
+      throw new Error('Unsupported object key or file type.');
+    }
+
+    const base = resolve(String(this.uploadDirectory));
+    const filePath = resolve(base + '/' + key);
+    if (!filePath.startsWith(base + sep)) {
+      throw new Error('Unsafe file path');
+    }
+
+    // nothing is created once the deadline passed
+    signal.throwIfAborted();
+    mkdirSync(dirname(filePath), { recursive: true });
+    let handle: FileHandle;
+    try {
+      handle = await open(filePath, 'wx');
+    } catch (err: any) {
+      if (err?.code === 'EEXIST') {
+        throw new StorageObjectExistsError(key);
+      }
+      throw err;
+    }
+
+    await pipeline(stream, handle.createWriteStream(), { signal });
   }
 
   // Accepts either the public URL or the filesystem path. Callers can pass a

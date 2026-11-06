@@ -1,0 +1,196 @@
+{
+  "version": "ww-canonical-caption-vectors-v1",
+  "capabilities": "ww-managed-capabilities-v2",
+  "gate": "sanitizePostContent(content) === content (libraries/helpers/src/utils/sanitize.post.content.ts)",
+  "sourceVerified": {
+    "sanitizer": "dompurify 3.4.17 via isomorphic-dompurify 3.10.0 on jsdom 29.1.0; innerHTML is parse5 8.0.1 serialize, text escaped by entities 8.0.0 escapeText /[&<>\\u00A0]/",
+    "fastPath": "dompurify returns a string without '<' unparsed and unchanged (purify.cjs.js: dirty.indexOf('<') === -1)",
+    "plainText": "postContentPlainText and stripHtmlValidation use parse5 6.0.1 (escapeString: & U+00A0 < > in text)"
+  },
+  "codecs": {
+    "ww-plain-escape-v1": {
+      "form": "TAGLESS",
+      "escapes": { "&": "&amp;", "<": "&lt;", ">": "&gt;", " ": "&nbsp;" },
+      "quotes": "LITERAL",
+      "newlines": "LITERAL_LF",
+      "refusedInput": ["U+000D", "U+0000", "LONE_SURROGATE"],
+      "sanitizerFixedPoint": true,
+      "gateRefusesUnescapedText": false,
+      "reviewText": "EXACT",
+      "draftStorage": "ACCEPTED_UNCHECKED_ESCAPES",
+      "providerText": "ENTITIES_NOT_DECODED",
+      "publication": "NOT_QUALIFIED",
+      "publicationDefects": ["ENTITIES_REACH_PROVIDER_ENCODED"]
+    },
+    "ww-plain-paragraph-escape-v1": {
+      "form": "ONE_PARAGRAPH",
+      "wrapper": ["<p>", "</p>"],
+      "escapes": { "&": "&amp;", "<": "&lt;", ">": "&gt;", " ": "&nbsp;" },
+      "quotes": "LITERAL",
+      "newlines": "LITERAL_LF",
+      "refusedInput": ["U+000D", "U+0000", "LONE_SURROGATE"],
+      "sanitizerFixedPoint": true,
+      "gateRefusesUnescapedText": true,
+      "reviewText": "EXACT",
+      "draftStorage": "RECOMMENDED",
+      "providerText": "DECODED_NBSP_AS_SPACE",
+      "publication": "NOT_QUALIFIED",
+      "publicationDefects": [
+        "NBSP_REACHES_PROVIDER_AS_SPACE",
+        "LITERAL_ENTITY_TEXT_DECODED_TWICE"
+      ]
+    }
+  },
+  "vectors": [
+    {
+      "name": "plain caption",
+      "plain": "Caption",
+      "ww-plain-escape-v1": "Caption",
+      "ww-plain-paragraph-escape-v1": "<p>Caption</p>"
+    },
+    {
+      "name": "ampersand",
+      "plain": "A & B",
+      "ww-plain-escape-v1": "A &amp; B",
+      "ww-plain-paragraph-escape-v1": "<p>A &amp; B</p>",
+      "providerTextNormal": {
+        "ww-plain-escape-v1": "A &amp; B",
+        "ww-plain-paragraph-escape-v1": "A & B"
+      }
+    },
+    {
+      "name": "less than and greater than",
+      "plain": "a < b > c",
+      "ww-plain-escape-v1": "a &lt; b &gt; c",
+      "ww-plain-paragraph-escape-v1": "<p>a &lt; b &gt; c</p>",
+      "providerTextNormal": {
+        "ww-plain-paragraph-escape-v1": "a < b > c"
+      }
+    },
+    {
+      "name": "markup typed as text",
+      "plain": "<script>alert(1)</script>",
+      "ww-plain-escape-v1": "&lt;script&gt;alert(1)&lt;/script&gt;",
+      "ww-plain-paragraph-escape-v1": "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>"
+    },
+    {
+      "name": "literal entity text (amp)",
+      "plain": "&amp; stays literal",
+      "ww-plain-escape-v1": "&amp;amp; stays literal",
+      "ww-plain-paragraph-escape-v1": "<p>&amp;amp; stays literal</p>"
+    },
+    {
+      "name": "literal entity text (lt / gt)",
+      "plain": "&lt;b&gt;",
+      "ww-plain-escape-v1": "&amp;lt;b&amp;gt;",
+      "ww-plain-paragraph-escape-v1": "<p>&amp;lt;b&amp;gt;</p>",
+      "providerTextNormal": {
+        "ww-plain-paragraph-escape-v1": "<b>"
+      },
+      "providerTextNote": "upstream stripHtmlValidation decodes &amp; before &lt; / &gt;, so literal entity text reaches a provider decoded twice"
+    },
+    {
+      "name": "legacy entity without semicolon",
+      "plain": "&copy 2026",
+      "ww-plain-escape-v1": "&amp;copy 2026",
+      "ww-plain-paragraph-escape-v1": "<p>&amp;copy 2026</p>"
+    },
+    {
+      "name": "quotes stay literal",
+      "plain": "\"double\" and 'single'",
+      "ww-plain-escape-v1": "\"double\" and 'single'",
+      "ww-plain-paragraph-escape-v1": "<p>\"double\" and 'single'</p>"
+    },
+    {
+      "name": "no-break space",
+      "plain": "non breaking",
+      "ww-plain-escape-v1": "non&nbsp;breaking",
+      "ww-plain-paragraph-escape-v1": "<p>non&nbsp;breaking</p>",
+      "providerTextNormal": {
+        "ww-plain-escape-v1": "non&nbsp;breaking",
+        "ww-plain-paragraph-escape-v1": "non breaking"
+      }
+    },
+    {
+      "name": "emoji and combined emoji",
+      "plain": "launch 🎉 👩🏽‍💻 ✓",
+      "ww-plain-escape-v1": "launch 🎉 👩🏽‍💻 ✓",
+      "ww-plain-paragraph-escape-v1": "<p>launch 🎉 👩🏽‍💻 ✓</p>"
+    },
+    {
+      "name": "tab",
+      "plain": "col1\tcol2",
+      "ww-plain-escape-v1": "col1\tcol2",
+      "ww-plain-paragraph-escape-v1": "<p>col1\tcol2</p>"
+    },
+    {
+      "name": "newlines and an empty line",
+      "plain": "line 1\nline 2\n\nline 4",
+      "ww-plain-escape-v1": "line 1\nline 2\n\nline 4",
+      "ww-plain-paragraph-escape-v1": "<p>line 1\nline 2\n\nline 4</p>",
+      "providerTextNormal": {
+        "ww-plain-escape-v1": "line 1\nline 2\n\nline 4",
+        "ww-plain-paragraph-escape-v1": "line 1\nline 2\n\nline 4"
+      }
+    },
+    {
+      "name": "leading and trailing spaces",
+      "plain": "  padded  ",
+      "ww-plain-escape-v1": "  padded  ",
+      "ww-plain-paragraph-escape-v1": "<p>  padded  </p>"
+    },
+    {
+      "name": "leading newline and tab",
+      "plain": "\n\tindented",
+      "ww-plain-escape-v1": "\n\tindented",
+      "ww-plain-paragraph-escape-v1": "<p>\n\tindented</p>"
+    },
+    {
+      "name": "trailing newline",
+      "plain": "ends with a newline\n",
+      "ww-plain-escape-v1": "ends with a newline\n",
+      "ww-plain-paragraph-escape-v1": "<p>ends with a newline\n</p>"
+    },
+    {
+      "name": "non-ASCII letters and symbols",
+      "plain": "Café – ü © ™",
+      "ww-plain-escape-v1": "Café – ü © ™",
+      "ww-plain-paragraph-escape-v1": "<p>Café – ü © ™</p>"
+    },
+    {
+      "name": "URL with a query",
+      "plain": "https://example.com/?a=1&b=2",
+      "ww-plain-escape-v1": "https://example.com/?a=1&amp;b=2",
+      "ww-plain-paragraph-escape-v1": "<p>https://example.com/?a=1&amp;b=2</p>"
+    }
+  ],
+  "refusedInput": [
+    {
+      "name": "carriage return",
+      "plain": "a\r\nb",
+      "reason": "the HTML parser turns CR LF into LF; the paragraph form is refused by the gate, the tagless form passes it unparsed, so the encoder refuses CR",
+      "paragraphSanitized": "<p>a\nb</p>"
+    },
+    {
+      "name": "NUL",
+      "plain": "a\u0000b",
+      "reason": "not text; the HTML parser drops it in body text"
+    },
+    {
+      "name": "lone surrogate",
+      "plain": "\ud800",
+      "reason": "not a Unicode scalar value"
+    }
+  ],
+  "notFixedPoints": [
+    { "html": "<p>A & B</p>", "sanitized": "<p>A &amp; B</p>" },
+    { "html": "<p>a > b</p>", "sanitized": "<p>a &gt; b</p>" },
+    { "html": "<p>non breaking</p>", "sanitized": "<p>non&nbsp;breaking</p>" },
+    { "html": "<p>&copy 2026</p>", "sanitized": "<p>© 2026</p>" },
+    { "html": "<p onclick=\"alert(1)\">Hi</p>", "sanitized": "<p>Hi</p>" }
+  ],
+  "taglessPassThrough": [
+    { "html": "A & B", "sanitized": "A & B", "note": "accepted as is: the gate cannot see that it was not escaped" },
+    { "html": "a > b", "sanitized": "a > b", "note": "accepted as is: the gate cannot see that it was not escaped" }
+  ]
+}

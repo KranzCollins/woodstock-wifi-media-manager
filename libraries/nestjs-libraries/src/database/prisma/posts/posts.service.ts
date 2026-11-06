@@ -58,6 +58,7 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { postContentPlainText } from '@gitroom/helpers/utils/sanitize.post.content';
 import { CreatePublicCommentDto } from '@gitroom/nestjs-libraries/dtos/comments/add.comment.dto';
 import { countLength } from '@gitroom/helpers/utils/count.length';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 
 type PostWithConditionals = Post & {
   integration?: Integration;
@@ -169,6 +170,10 @@ export class PostsService {
   }
 
   async updateReleaseId(orgId: string, postId: string, releaseId: string) {
+    // the provider is asked with the stored token before the post write
+    // would be refused
+    refuseManagedEffect(orgId, 'changing a post release');
+
     const post = await this._postRepository.getPostById(postId, orgId);
 
     // the URL is a bonus: connecting must not fail when it cannot be fetched
@@ -1151,6 +1156,10 @@ export class PostsService {
     creationMethod: CreationMethod,
     keepGroup = false
   ): Promise<any[]> {
+    // the write fence would refuse the post rows, but only after the short
+    // links were created in the operator's shortener account
+    refuseManagedEffect(orgId, 'creating or changing posts');
+
     const postList = [];
     const batchId = uuidv4();
     for (const post of body.posts) {

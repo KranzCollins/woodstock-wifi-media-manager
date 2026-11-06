@@ -1839,3 +1839,609 @@ model Announcement {
   color       AnnouncementColor @default(INFO)
   createdAt   DateTime          @default(now())
 }
+
+// W&W managed-organization extension (docs/managed-extension/README.md).
+// Additive only: no existing model or column changes. The rows are written
+// exclusively by ManagedRepository inside runAsManagedWriter.
+
+// One per enrolled organization. The row is the per-org lock every managed
+// mutation takes first, and `sequence` is the dense change-feed counter.
+model ManagedOrganization {
+  id             String   @id @default(uuid())
+  organizationId String   @unique
+  sequence       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model ManagedChannelBinding {
+  id                  String    @id @default(uuid())
+  organizationId      String
+  integrationId       String    @unique
+  generation          Int       @default(1)
+  status              String    @default("PENDING_QUALIFICATION")
+  providerIdentifier  String
+  internalId          String
+  profile             String?
+  identityFingerprint String
+  qualifiedAt         DateTime?
+  pausedAt            DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([organizationId])
+}
+
+model ManagedPost {
+  id                  String   @id @default(uuid())
+  organizationId      String
+  integrationId       String
+  group               String   @unique
+  revision            Int
+  bindingGeneration   Int
+  rowFingerprint      String
+  lastSequence        Int
+  createdOperationKey String
+  lastOperationKey    String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([organizationId, id])
+}
+
+model ManagedPostRevision {
+  id             String   @id @default(uuid())
+  managedPostId  String
+  organizationId String
+  revision       Int
+  operationKey   String
+  payloadHash    String
+  sequence       Int
+  snapshot       String
+  createdAt      DateTime @default(now())
+
+  @@unique([managedPostId, revision])
+  @@index([organizationId])
+}
+
+model ManagedOperation {
+  id             String   @id @default(uuid())
+  organizationId String
+  operationKey   String
+  kind           String
+  payloadHash    String
+  managedPostId  String
+  revision       Int
+  sequence       Int
+  credentialId   String
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, operationKey])
+}
+
+model ManagedMediaEvidence {
+  id             String   @id @default(uuid())
+  organizationId String
+  mediaId        String
+  storedPath     String
+  // the storage's own marker of the object the digest was taken from; the
+  // draft gate compares it with the object's current one
+  storageVersion String?
+  // server-private pin of that object, never returned: its key and the
+  // digest of the namespace the key resolved in (see
+  // ManagedMediaUploadAttempt.storageNamespace). The object is only read
+  // again by this key in this namespace. null on evidence recorded before the
+  // pin existed: such evidence is held, never re-pinned or backfilled
+  storageKey       String?
+  storageNamespace String?
+  sha256         String
+  byteLength     Int
+  mimeType       String?
+  method         String
+  credentialId   String
+  sequence       Int
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, mediaId])
+}
+
+// A W&W media upload reserved under an operation key before any byte is
+// sent. `requestHash` binds the key to the declared digest, size and type;
+// the key is also bound to the credential that reserved it.
+// RESERVED -> RECEIVING (one attempt holds the lease) -> COMPLETED, or back
+// to RESERVED when the attempt provably stored nothing usable, or FAILED
+// after the bounded number of attempts. COMPLETED and FAILED are final.
+model ManagedMediaUpload {
+  id                String    @id @default(uuid())
+  organizationId    String
+  operationKey      String
+  credentialId      String
+  requestHash       String
+  sha256            String
+  byteLength        Int
+  mimeType          String
+  status            String    @default("RESERVED")
+  attempt           Int       @default(0)
+  leaseExpiresAt    DateTime?
+  mediaId           String?
+  evidenceId        String?
+  completedSequence Int?
+  failureReason     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([organizationId, operationKey])
+}
+
+// One row per attempt, written before the attempt's first byte: the exact
+// object identity it may create, so a crash between the storage write and
+// the terminal record is reconciled by reading back that object. Rows are
+// never deleted; `outcome` moves once from RECEIVING.
+model ManagedMediaUploadAttempt {
+  id               String   @id @default(uuid())
+  organizationId   String
+  uploadId         String
+  attempt          Int
+  storageKey       String
+  storedPath       String   @unique
+  // server-private digest of the storage namespace the key was written in;
+  // never returned. null on attempts claimed before it was recorded: those
+  // are held, never read back in a guessed namespace
+  storageNamespace String?
+  outcome          String   @default("RECEIVING")
+  detail           String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([uploadId, attempt])
+  @@index([organizationId])
+}
+
+model ManagedChangeEvent {
+  id                String   @id @default(uuid())
+  organizationId    String
+  sequence          Int
+  kind              String
+  entityType        String
+  entityId          String
+  revision          Int?
+  bindingGeneration Int?
+  operationKey      String?
+  data              String   @default("{}")
+  createdAt         DateTime @default(now())
+
+  @@unique([organizationId, sequence])
+}
+
+// An owner-driven channel connect / reconnect requested by W&W
+// (docs/managed-extension/account-connection.md), under an operation key
+// bound to the requesting credential and `requestHash` (provider, mode,
+// target integration + binding generation, expected account). Holds no token,
+// authorization code or OAuth state: those stay in memory, the state and the
+// code only as a digest on the attempt. Rows are never deleted.
+// PENDING -> EXCHANGING (one claimed callback) -> COMPLETED | FAILED |
+// UNKNOWN; PENDING -> CANCELLED | EXPIRED; FAILED (retryable codes only) ->
+// PENDING on an explicit retry.
+model ManagedConnectionIntent {
+  id                        String    @id @default(uuid())
+  organizationId            String
+  operationKey              String
+  credentialId              String
+  requestHash               String
+  providerIdentifier        String
+  mode                      String
+  targetIntegrationId       String?
+  expectedBindingGeneration Int?
+  expectedInternalId        String?
+  expectedProfile           String?
+  status                    String    @default("PENDING")
+  // authorizations issued so far; the current one is the attempt row with
+  // this number
+  attempt                   Int       @default(0)
+  expiresAt                 DateTime
+  leaseExpiresAt            DateTime?
+  failureCode               String?
+  // the receipt, once COMPLETED
+  integrationId             String?
+  bindingGeneration         Int?
+  bindingStatus             String?
+  completedSequence         Int?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+
+  @@unique([organizationId, operationKey])
+  @@index([organizationId, status])
+}
+
+// One row per authorization issued for an intent, written before the
+// authorization URL leaves the server. `outcome` moves once from ISSUED (to
+// REPLACED / CANCELLED / EXPIRED / FAILED, or to EXCHANGING and then to a
+// terminal outcome). The observed account is the provider's answer at the
+// exchange, kept apart from the credential written to Integration. Rows are
+// never deleted.
+model ManagedConnectionAttempt {
+  id                   String    @id @default(uuid())
+  organizationId       String
+  intentId             String
+  attempt              Int
+  // sha256 of the 256-bit OAuth state; the state itself is never stored
+  stateDigest          String    @unique
+  relayCredentialId    String
+  expiresAt            DateTime
+  outcome              String    @default("ISSUED")
+  // sha256 of the authorization code the claimed callback carried
+  codeDigest           String?
+  callbackCredentialId String?
+  claimedAt            DateTime?
+  failureCode          String?
+  observedInternalId   String?
+  observedProfile      String?
+  observedAt           DateTime?
+  // the provider's own expires_in, null when it gave none
+  providerExpiresIn    Int?
+  grantedScopes        String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([intentId, attempt])
+  @@index([organizationId])
+}
+
+// The owned creative runtime (docs/managed-extension/creative-runtime.md).
+// One row per W&W creative job, bound to the organization of the credential
+// that first named it: the W&W tenant / workspace and the canonical input
+// can never change afterwards. `id` (without dashes) is the job's private
+// scratch namespace. Rows are never deleted.
+model ManagedCreativeJob {
+  id             String   @id @default(uuid())
+  organizationId String
+  jobId          String
+  tenantId       String
+  workspaceId    String
+  kind           String
+  inputSha256    String
+  input          String
+  credentialId   String
+  createdAt      DateTime @default(now())
+
+  @@unique([organizationId, jobId])
+}
+
+// One row per W&W ledger call (`<jobId>:<stage>:<item>:<attempt>`), created
+// before the provider request leaves (DISPATCHING) or as NOT_SENT when it
+// never will. Only the request that created it sends; it leaves DISPATCHING
+// once, to the answer it got. A replay answers `answer`, or unknown while
+// DISPATCHING. `handle`, `intermediate` and the poll fields are
+// server-private JSON and never hold a url or a key. Rows are never deleted.
+model ManagedCreativeCall {
+  id               String   @id @default(uuid())
+  organizationId   String
+  jobRowId         String?
+  callKey          String
+  requestHash      String
+  stage            String
+  item             Int
+  attempt          Int
+  status           String
+  code             String?
+  handleKey        String?
+  handle           String?
+  answer           String?
+  intermediate     String?
+  pollStatus       String?
+  pollAnswer       String?
+  pollIntermediate String?
+  credentialId     String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([organizationId, callKey])
+  @@unique([organizationId, handleKey])
+  @@index([organizationId, jobRowId])
+}
+
+// Bytes the runtime retained in its private scratch bucket, pinned by digest
+// (artifacts, slide images and voices, transcripts, W&W source images). An
+// object is only read again by `storageKey`, and only used when its bytes
+// still have `sha256`. Rows are never deleted.
+model ManagedCreativeObject {
+  id             String   @id @default(uuid())
+  organizationId String
+  jobRowId       String
+  role           String
+  slot           Int
+  storageKey     String
+  sha256         String
+  byteLength     Int
+  contentType    String
+  assetId        String?
+  assetVersion   Int?
+  createdAt      DateTime @default(now())
+
+  @@unique([jobRowId, role, slot])
+  @@index([organizationId, jobRowId])
+}
+
+// The owned post lifecycle, ww.managed-lifecycle.v1
+// (docs/managed-extension/lifecycle-storage-20261105.md). Additive only: no
+// existing model or column changes, nothing is seeded. Every lifecycle write
+// is one transaction that first takes the ManagedOrganization row (the same
+// no-op update as ManagedRepository.mutate) and only then
+// ManagedLifecycleOrganization. No row holds a provider token, a credential
+// secret or a media capability token. Rows are never deleted.
+
+// The lifecycle feed's own dense counter, created by the organization's first
+// lifecycle write. ManagedOrganization.sequence (the DRAFT feed) is never
+// advanced by a lifecycle write.
+model ManagedLifecycleOrganization {
+  id             String   @id @default(uuid())
+  organizationId String   @unique
+  sequence       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// The lifecycle of one ManagedPost, created by its first lifecycle write; a
+// post without a row is DRAFT at scheduleGeneration 0. Always read with its
+// organizationId. activeScheduleId is the post's only ACTIVE or ENDING
+// schedule. A retained soft delete sets the deleted markers once; the row,
+// its schedules and dispatches stay.
+model ManagedPostLifecycle {
+  id                    String    @id @default(uuid())
+  organizationId        String
+  managedPostId         String    @unique
+  lifecycle             String    @default("DRAFT")
+  scheduleGeneration    Int       @default(0)
+  activeScheduleId      String?   @unique
+  // +1 on every change of the row
+  version               Int       @default(1)
+  lastLifecycleSequence Int       @default(0)
+  lastOperationKey      String?
+  deletedAt             DateTime?
+  deletedOperationKey   String?
+  deletedSequence       Int?
+  // DRAFT, SCHEDULED, PUBLISHED or FAILED
+  deletedFromLifecycle  String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([organizationId, lifecycle])
+}
+
+// The acknowledged answer of one lifecycle write, inserted in the transaction
+// that committed it, next to the ManagedOperation row that claims its key in
+// the namespace shared with drafts (kind = the lifecycle kind, sequence = 0:
+// no DRAFT feed position). Immutable. `result` is the exact JSON first
+// answered (replayed: false).
+model ManagedLifecycleOperation {
+  id                 String   @id @default(uuid())
+  organizationId     String
+  operationKey       String
+  kind               String
+  payloadHash        String
+  credentialId       String
+  managedPostId      String
+  // RESOLVE: the dispatch it resolved
+  dispatchId         String?
+  // the schedule it created or ended
+  scheduleId         String?
+  revision           Int
+  // after the write
+  scheduleGeneration Int
+  // the lifecycle sequence of the event that carries this key
+  sequence           Int
+  result             String
+  committedAt        DateTime
+  createdAt          DateTime @default(now())
+
+  @@unique([organizationId, operationKey])
+  @@unique([organizationId, sequence])
+  @@index([organizationId, managedPostId])
+}
+
+// The lifecycle feed, dense per organization and separate from
+// ManagedChangeEvent. `data` is the public projection only: never a
+// credential, holder, fencing token, request hash, ledger, pending envelope,
+// release snapshot, storage key or capability.
+model ManagedLifecycleChangeEvent {
+  id                 String   @id @default(uuid())
+  organizationId     String
+  sequence           Int
+  kind               String
+  entityType         String
+  entityId           String
+  managedPostId      String
+  scheduleId         String?
+  dispatchId         String?
+  operationKey       String?
+  scheduleGeneration Int?
+  dispatchVersion    Int?
+  data               String
+  createdAt          DateTime @default(now())
+
+  @@unique([organizationId, sequence])
+  @@index([organizationId, managedPostId])
+}
+
+// One per accepted schedule / publish-now, at the post's next
+// scheduleGeneration. Everything an occurrence sends is fixed here: revision,
+// binding, channel identity, both confirmed hashes, the decoded reviewed
+// release and the qualification window it was accepted in (a later policy
+// never extends it). lastOccurrence starts at maxOccurrences - 1 and is only
+// lowered. ACTIVE -> ENDING -> CANCELLED; ACTIVE -> COMPLETED | CANCELLED |
+// HALTED | SUPERSEDED_BY_DELETE.
+model ManagedSchedule {
+  id                       String    @id @default(uuid())
+  organizationId           String
+  managedPostId            String
+  scheduleGeneration       Int
+  mode                     String
+  status                   String
+  version                  Int       @default(1)
+  revision                 Int
+  bindingGeneration        Int
+  integrationId            String
+  providerIdentifier       String
+  identityFingerprint      String
+  // W&W's approved content digest and the owned release hash, as confirmed
+  contentSha256            String
+  releaseHash              String
+  releaseHashVersion       String
+  codec                    String
+  // server-private: the decoded release as reviewed (text, delays, media
+  // pins, settings). No token, credential, storage key, path or URL
+  release                  String
+  anchorAt                 DateTime
+  intervalDays             Int?
+  maxOccurrences           Int
+  lastOccurrence           Int
+  maxLatenessMs            Int
+  // exclusive expiry
+  policyGrantedAt          DateTime
+  policyExpiresAt          DateTime
+  operationKey             String
+  credentialId             String
+  endRequestedOperationKey String?
+  endRequestedAt           DateTime?
+  endedAt                  DateTime?
+  endedCode                String?
+  endedOperationKey        String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@unique([managedPostId, scheduleGeneration])
+  @@unique([organizationId, operationKey])
+  @@index([organizationId, status])
+}
+
+// One occurrence of a schedule, with the binding and generation it keeps
+// until it settles. `version` +1 on every transition (expectedDispatchVersion);
+// a lease claim or renewal is not a transition. `fencingToken` +1 on every
+// lease claim. `members` and `resolution` are public projections.
+// nextActionAt is when the dispatcher next looks at it: dueAt, a deferral's
+// next attempt, a member delay or a poll. PENDING -> CANCELLED | EXPIRED |
+// NOT_SENT | ADMITTED; ADMITTED -> PUBLISHED | NOT_SENT | REJECTED | PARTIAL
+// | UNKNOWN; UNKNOWN | PARTIAL -> RESOLVED_*.
+model ManagedDispatch {
+  id                      String    @id @default(uuid())
+  organizationId          String
+  managedPostId           String
+  scheduleId              String
+  occurrence              Int
+  dueAt                   DateTime
+  admissibleUntil         DateTime
+  status                  String    @default("PENDING")
+  version                 Int       @default(1)
+  code                    String?
+  revision                Int
+  bindingGeneration       Int
+  scheduleGeneration      Int
+  contentSha256           String
+  releaseHash             String
+  members                 String
+  resolution              String?
+  cancelledByOperationKey String?
+  leaseHolder             String?
+  leaseExpiresAt          DateTime?
+  fencingToken            Int       @default(0)
+  // the call admitted and not yet settled; at most one
+  activeCallId            String?   @unique
+  nextActionAt            DateTime?
+  nextStep                String?
+  nextMember              Int?
+  deferralCode            String?
+  deferralCount           Int       @default(0)
+  firstDeferredAt         DateTime?
+  lastDeferredAt          DateTime?
+  admittedAt              DateTime?
+  settledAt               DateTime?
+  lastLifecycleSequence   Int
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@unique([scheduleId, occurrence])
+  @@index([organizationId, status, nextActionAt])
+  @@index([organizationId, managedPostId])
+}
+
+// One provider mutation of a dispatch, inserted DISPATCHING and committed
+// before any byte of it leaves; a DISPATCHING row is never sent again. A
+// second attempt only follows a NOT_SENT proved by the transport's own
+// sentLedger. DISPATCHING -> OK | PENDING_PROVIDER | REJECTED | NOT_SENT |
+// UNKNOWN; PENDING_PROVIDER -> OK | REJECTED | UNKNOWN. Read-only polls of a
+// PENDING_PROVIDER call are counted on it. sentLedger and pendingEnvelope are
+// server-private: never a token, capability, url query or request body.
+model ManagedDispatchCall {
+  id                String    @id @default(uuid())
+  organizationId    String
+  managedPostId     String
+  dispatchId        String
+  member            Int
+  postId            String
+  step              String
+  // Separate mutations within one adapter step, not a retry: carousel
+  // FINALIZE stage 0 creates its container; stage 1 publishes that container.
+  stage             Int       @default(0)
+  attempt           Int
+  status            String
+  code              String?
+  holder            String
+  dispatchVersion   Int
+  fencingToken      Int
+  leaseExpiresAt    DateTime
+  deadlineAt        DateTime
+  requestHash       String
+  // shared budget units reserved before admission (the adapter's declared
+  // maximum for the step) and the outbound requests the transport started;
+  // unused reserved units are kept
+  reservedUnits     Int
+  consumedUnits     Int       @default(0)
+  sentLedger        String?
+  pendingEnvelope   String?
+  pollCount         Int       @default(0)
+  pollReservedUnits Int       @default(0)
+  nextPollAt        DateTime?
+  pollDeadlineAt    DateTime?
+  lastPolledAt      DateTime?
+  // the provider's public answer once settled
+  result            String?
+  admittedAt        DateTime
+  settledAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([dispatchId, member, step, stage, attempt])
+  @@index([organizationId, status])
+  @@index([organizationId, dispatchId])
+}
+
+// ManagedMediaCapabilityRecord of managed.lifecycle.media-capability.ts,
+// field for field. The token is never stored: the row is found by the sha256
+// of its random id. fetchCount only moves by compare-and-set from the value
+// read, while not revoked and before expiresAt (exclusive). A revoked row
+// stays.
+model ManagedMediaCapability {
+  capabilityIdSha256 String    @id
+  keyId              String
+  organizationId     String
+  dispatchId         String
+  callId             String
+  dispatchVersion    Int
+  mediaId            String
+  evidenceId         String
+  sha256             String
+  byteLength         Int
+  mimeType           String
+  storageKey         String
+  storageNamespace   String
+  storageVersion     String
+  issuedAt           DateTime
+  expiresAt          DateTime
+  maxFetches         Int
+  fetchCount         Int       @default(0)
+  revokedAt          DateTime?
+  revokeReason       String?
+
+  @@unique([organizationId, callId, evidenceId])
+  @@unique([organizationId, callId, mediaId])
+}

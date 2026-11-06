@@ -1,12 +1,27 @@
 import { PrismaRepository } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { managedOrganizationIds } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.mode';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 
 @Injectable()
 export class MediaRepository {
   constructor(private _media: PrismaRepository<'media'>) {}
 
-  saveFile(org: string, fileName: string, filePath: string, originalName?: string) {
+  async saveFile(org: string, fileName: string, filePath: string, originalName?: string) {
+    refuseManagedEffect(org, 'saving ordinary media');
+    // Reserved object names are never admitted through an ordinary media path.
+    // Older captured objects have random names, so also refuse aliases of any
+    // existing managed organization's path, including soft-deleted media.
+    if (/^managed-/i.test(fileName)) throw new BadRequestException('Reserved media object');
+    const enrolled = managedOrganizationIds();
+    if (enrolled.length) {
+      const owner = await this._media.model.media.findFirst({
+        where: { path: filePath, organizationId: { in: [...enrolled] } },
+        select: { organizationId: true },
+      });
+      if (owner) refuseManagedEffect(owner.organizationId, 'adopting managed media');
+    }
     return this._media.model.media.create({
       data: {
         organization: {

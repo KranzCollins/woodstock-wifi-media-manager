@@ -34,6 +34,7 @@ import {
   ResolveCommentDto,
 } from '@gitroom/nestjs-libraries/dtos/comments/add.comment.dto';
 import { RealIP } from 'nestjs-real-ip';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 
 @ApiTags('Posts')
 @Controller('/posts')
@@ -264,6 +265,10 @@ export class PostsController {
     @Body() body: GeneratorDto,
     @Res({ passthrough: false }) res: Response
   ) {
+    // before the stream starts: the agent calls the model and uploads its
+    // image before the media write would be refused
+    refuseManagedEffect(org.id, 'AI post generation');
+
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     try {
       for await (const event of this._agentGraphService.start(org.id, body)) {
@@ -311,6 +316,7 @@ export class PostsController {
     @GetOrgFromRequest() org: Organization,
     @Body() body: { content: string; len: number }
   ) {
+    refuseManagedEffect(org.id, 'AI post generation');
     return this._postsService.separatePosts(body.content, body.len);
   }
 }

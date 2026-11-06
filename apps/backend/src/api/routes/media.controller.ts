@@ -25,6 +25,7 @@ import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { SaveMediaInformationDto } from '@gitroom/nestjs-libraries/dtos/media/save.media.information.dto';
 import { VideoDto } from '@gitroom/nestjs-libraries/dtos/videos/video.dto';
 import { VideoFunctionDto } from '@gitroom/nestjs-libraries/dtos/videos/video.function.dto';
+import { RefuseManagedEffect } from '@gitroom/backend/services/auth/managed.effect.guard';
 
 @ApiTags('Media')
 @Controller('/media')
@@ -85,6 +86,7 @@ export class MediaController {
   }
 
   @Post('/upload-server')
+  @RefuseManagedEffect('uploading media')
   @UseInterceptors(FileInterceptor('file', streamUploadOptions()))
   async uploadServer(
     @GetOrgFromRequest() org: Organization,
@@ -113,11 +115,14 @@ export class MediaController {
     }
 
     // the uploader only sends the bare object name the bucket upload returned,
-    // anything else would make the stored path point outside the bucket
+    // anything else would make the stored path point outside the bucket.
+    // `managed-` names are W&W reserved uploads (the uploader's random names
+    // never contain "-"), no other organization may adopt one as its media
     if (
       !process.env.CLOUDFLARE_BUCKET_URL ||
       typeof name !== 'string' ||
       /[\\/]/.test(name) ||
+      /^managed-/i.test(name) ||
       name === '.' ||
       name === '..'
     ) {
@@ -141,6 +146,7 @@ export class MediaController {
   }
 
   @Post('/upload-simple')
+  @RefuseManagedEffect('uploading media')
   @UseInterceptors(FileInterceptor('file', streamUploadOptions()))
   async uploadSimple(
     @GetOrgFromRequest() org: Organization,
@@ -164,6 +170,7 @@ export class MediaController {
   }
 
   @Post('/:endpoint')
+  @RefuseManagedEffect('uploading media')
   async uploadFile(
     @GetOrgFromRequest() org: Organization,
     @Req() req: Request,
@@ -215,9 +222,15 @@ export class MediaController {
 
   @Post('/video/function')
   videoFunction(
+    @GetOrgFromRequest() org: Organization,
     @Body() body: VideoFunctionDto
   ) {
-    return this._mediaService.videoFunction(body.identifier, body.functionName, body.params);
+    return this._mediaService.videoFunction(
+      org.id,
+      body.identifier,
+      body.functionName,
+      body.params
+    );
   }
 
   @Get('/generate-video/:type/allowed')

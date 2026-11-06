@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2020",
+    "lib": [
+      "es2022",
+      "dom"
+    ],
+    "types": [
+      "jest",
+      "node"
+    ],
+    "isolatedModules": true,
+    "importHelpers": false,
+    "incremental": false,
+    "sourceMap": true
+  },
+  "include": [
+    "libraries/nestjs-libraries/src/database/prisma/managed/**/*.ts",
+    "apps/backend/src/managed-api/**/*.ts",
+    "apps/orchestrator/src/activities/__tests__/**/*.ts",
+    "libraries/nestjs-libraries/src/managed-creative/**/*.ts"
+  ]
+}

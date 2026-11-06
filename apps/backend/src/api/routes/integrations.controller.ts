@@ -37,6 +37,7 @@ import {
 } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 import { uniqBy } from 'lodash';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
+import { refuseManagedEffect } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.errors';
 
 @ApiTags('Integrations')
 @Controller('/integrations')
@@ -165,6 +166,9 @@ export class IntegrationsController {
     @Param('id') id: string,
     @Body() body: { name: string; picture: string }
   ) {
+    // the live account would change before the name / picture write is refused
+    refuseManagedEffect(org.id, 'changing the channel name or picture');
+
     const integration = await this._integrationService.getIntegrationById(
       org.id,
       id
@@ -224,6 +228,9 @@ export class IntegrationsController {
     @Query('onboarding') onboarding: string,
     @GetOrgFromRequest() org: Organization
   ) {
+    // externalUrl can register an app on the instance before any callback
+    refuseManagedEffect(org.id, 'connecting or reconnecting a channel');
+
     if (
       !this._integrationManager
         .getAllowedSocialsIntegrations()
@@ -357,6 +364,10 @@ export class IntegrationsController {
     @GetOrgFromRequest() org: Organization,
     @Body() body: IntegrationFunctionDto
   ): Promise<any> {
+    // provider tools are not all read-only, and a refresh they trigger
+    // could not be stored
+    refuseManagedEffect(org.id, 'calling a channel tool');
+
     const getIntegration = await this._integrationService.getIntegrationById(
       org.id,
       body.id
@@ -497,12 +508,21 @@ export class IntegrationsController {
   }
 
   @Get('/telegram/updates')
-  async getUpdates(@Query() query: { word: string; id?: number }) {
+  async getUpdates(
+    @GetOrgFromRequest() org: Organization,
+    @Query() query: { word: string; id?: number }
+  ) {
+    refuseManagedEffect(org.id, 'connecting or reconnecting a channel');
     return new TelegramProvider().getBotId(query);
   }
 
   @Post('/moltbook/register')
-  async moltbookRegister(@Body() body: { name: string; description: string }) {
+  async moltbookRegister(
+    @GetOrgFromRequest() org: Organization,
+    @Body() body: { name: string; description: string }
+  ) {
+    // outside the try: a refusal must not turn into { error }
+    refuseManagedEffect(org.id, 'connecting or reconnecting a channel');
     try {
       const provider = new MoltbookProvider();
       const result = await provider.registerAgent(body.name, body.description);
@@ -517,7 +537,11 @@ export class IntegrationsController {
   }
 
   @Get('/moltbook/status')
-  async moltbookStatus(@Query('apiKey') apiKey: string) {
+  async moltbookStatus(
+    @GetOrgFromRequest() org: Organization,
+    @Query('apiKey') apiKey: string
+  ) {
+    refuseManagedEffect(org.id, 'connecting or reconnecting a channel');
     try {
       const provider = new MoltbookProvider();
       const result = await provider.checkAgentStatus(apiKey);

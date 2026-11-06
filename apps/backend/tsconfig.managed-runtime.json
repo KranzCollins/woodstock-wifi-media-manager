@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "outDir": "./dist-managed-runtime",
+    "incremental": false
+  },
+  "files": ["src/managed-runtime/main.ts"]
+}

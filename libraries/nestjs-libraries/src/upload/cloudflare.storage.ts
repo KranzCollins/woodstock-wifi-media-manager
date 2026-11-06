@@ -2,17 +2,28 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  GetObjectCommandOutput,
+  HeadObjectCommand,
+  HeadObjectCommandOutput,
+  HeadBucketCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Upload } from '@aws-sdk/lib-storage';
 import { Readable } from 'stream';
+import { createHash } from 'crypto';
 import 'multer';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import mime from 'mime-types';
 // @ts-ignore
 import { getExtension } from 'mime';
-import { IUploadProvider, UploadedStream } from './upload.interface';
+import {
+  IUploadProvider,
+  STORAGE_OBJECT_KEY,
+  STORED_OBJECT_KEY,
+  StorageObjectExistsError,
+  UploadedStream,
+} from './upload.interface';
 import axios from 'axios';
 import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
 import { ssrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
@@ -37,6 +48,7 @@ const ALLOWED_MIME_TYPES = new Set<string>([
 
 class CloudflareStorage implements IUploadProvider {
   private _client: S3Client;
+  private _namespace: string;
 
   constructor(
     accountID: string,
@@ -46,8 +58,16 @@ class CloudflareStorage implements IUploadProvider {
     private _bucketName: string,
     private _uploadUrl: string
   ) {
+    const endpoint = `https://${accountID}.r2.cloudflarestorage.com`;
+    // the bucket keys resolve in, by account and name; never the credentials
+    this._namespace =
+      'r2:' +
+      createHash('sha256')
+        .update(JSON.stringify([endpoint, _bucketName]))
+        .digest('hex');
+
     this._client = new S3Client({
-      endpoint: `https://${accountID}.r2.cloudflarestorage.com`,
+      endpoint,
       region,
       credentials: {
         accessKeyId: accessKey,
@@ -230,6 +250,141 @@ class CloudflareStorage implements IUploadProvider {
     );
 
     return Body!.transformToString();
+  }
+
+  // an overwrite of the key gets a new ETag / last-modified; without an
+  // ETag there is nothing to bind to
+  private objectVersion(
+    etag: string | undefined,
+    length: number | undefined,
+    lastModified: Date | undefined
+  ) {
+    if (!etag || length === undefined || !lastModified) {
+      return null;
+    }
+
+    return `r2:${etag}:${length}:${lastModified.toISOString()}`;
+  }
+
+  async objectNamespace() {
+    return this._namespace;
+  }
+
+  objectPath(key: string) {
+    return `${this._uploadUrl}/${key}`;
+  }
+
+  // Only keys under this bucket's public URL; they are read with the
+  // server's own credentials and no URL is ever fetched
+  objectKeyOf(filePath: string) {
+    const prefix = `${this._uploadUrl}/`;
+    if (!filePath.startsWith(prefix)) {
+      return null;
+    }
+
+    const key = filePath.slice(prefix.length);
+    return STORED_OBJECT_KEY.test(key) ? key : null;
+  }
+
+  // A 404 only proves the key is absent when the bucket itself answers: a
+  // HEAD has no error body, so a missing / renamed bucket looks the same
+  private async absentKey(err: any) {
+    if (err?.$metadata?.httpStatusCode !== 404) {
+      throw err;
+    }
+
+    await this._client.send(new HeadBucketCommand({ Bucket: this._bucketName }));
+    return null;
+  }
+
+  // By key in this bucket, read with the server's own credentials, whatever
+  // the public URL is now
+  async objectVersionAt(key: string) {
+    if (!STORED_OBJECT_KEY.test(key)) {
+      throw new Error('Unsupported object key.');
+    }
+
+    let head: HeadObjectCommandOutput;
+    try {
+      head = await this._client.send(
+        new HeadObjectCommand({ Bucket: this._bucketName, Key: key })
+      );
+    } catch (err: any) {
+      return this.absentKey(err);
+    }
+
+    // an object that exists is never reported absent for lacking a version
+    const version = this.objectVersion(
+      head.ETag,
+      head.ContentLength,
+      head.LastModified
+    );
+    if (!version) {
+      throw new Error('The stored object has no version');
+    }
+
+    return version;
+  }
+
+  async openObjectAt(key: string) {
+    if (!STORED_OBJECT_KEY.test(key)) {
+      throw new Error('Unsupported object key.');
+    }
+
+    let response: GetObjectCommandOutput;
+    try {
+      response = await this._client.send(
+        new GetObjectCommand({ Bucket: this._bucketName, Key: key })
+      );
+    } catch (err: any) {
+      return this.absentKey(err);
+    }
+
+    const { Body, ETag, ContentLength, LastModified } = response;
+    const version = this.objectVersion(ETag, ContentLength, LastModified);
+    if (!Body || !version) {
+      (Body as Readable | undefined)?.destroy();
+      throw new Error('The stored object has no version');
+    }
+
+    return { stream: Body as Readable, version };
+  }
+
+  // A single conditional PUT (If-None-Match: *): the bucket refuses it when
+  // the key exists, so an existing object is never replaced. The signal
+  // aborts this side of the request only: a PUT R2 already received may
+  // still commit afterwards, and nothing here can prove it will not
+  async createObjectAt(
+    key: string,
+    stream: Readable,
+    mimetype: string,
+    byteLength: number,
+    signal: AbortSignal
+  ) {
+    if (!STORAGE_OBJECT_KEY.test(key) || !ALLOWED_MIME_TYPES.has(mimetype)) {
+      throw new Error('Unsupported object key or file type.');
+    }
+
+    signal.throwIfAborted();
+    try {
+      await this._client.send(
+        new PutObjectCommand({
+          Bucket: this._bucketName,
+          ACL: 'public-read',
+          Key: key,
+          Body: stream,
+          ContentType: mimetype,
+          ContentLength: byteLength,
+          IfNoneMatch: '*',
+        }),
+        { abortSignal: signal }
+      );
+    } catch (err: any) {
+      if (err?.$metadata?.httpStatusCode === 412) {
+        throw new StorageObjectExistsError(key);
+      }
+      throw err;
+    }
   }
 
   async writeFile(fileName: string, body: string, contentType: string) {

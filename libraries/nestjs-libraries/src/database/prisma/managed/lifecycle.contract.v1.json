@@ -1,0 +1,3064 @@
+{
+  "metadata": {
+    "fixture": "ww.managed-lifecycle.v1 frozen wire fixtures",
+    "contract": "ww.managed-lifecycle.v1",
+    "source": "libraries/nestjs-libraries/src/database/prisma/managed/managed.lifecycle.contracts.ts",
+    "frozenOn": "2026-11-05",
+    "synthetic": true,
+    "notes": [
+      "Every value is synthetic. No organization, credential, account, token, storage key or private URL appears.",
+      "Scenarios are independent branches of one story; ids, sequences and instants agree within one scenario only.",
+      "Provider facts (maxStepUnits, maxStepDeadlineMs) are fixture values, not the declared facts of a real adapter.",
+      "Cancel and delete fixtures bind against responses.acceptedResult.body.schedule (S1, ACTIVE, scheduleVersion 1) plus the stored dispatches listed with the request.",
+      "responses.cancelRemainingPendingResult, cancelRemainingAgainResult, cancelSeriesAfterTruncationResult and deleteAfterTruncationResult branch from one further state of S1: occurrence 0 published, occurrence 1 pending. cancelRemainingPendingResult truncates it (the first end request); cancelRemainingAgainResult and then cancelSeriesAfterTruncationResult follow it, while deleteAfterTruncationResult is an alternative to cancelRemainingAgainResult. Each states only what the contract accepts; none is a recorded runtime answer."
+    ],
+    "digests": {
+      "kind": "FIXTURE_DIGEST",
+      "computed": false,
+      "pattern": "^(sha256:)?(fd[0-9a-f]{2})\\2{15}$",
+      "note": "Every sha256 / sha256:<hex> value is a format-only fixture digest (one 4-hex unit starting with fd, repeated 16 times). None is computed over anything and none may be compared with a real digest. Separately computed hash vectors belong in their own fixture; hashInputs holds the exact objects the contract hashes, without digests."
+    },
+    "urls": {
+      "allowedPrefix": "https://www.example.com/fixture/",
+      "note": "Only an example.com (RFC 2606) public release URL appears."
+    },
+    "expectedRed": {},
+    "resolved": {
+      "responses.deleteDraftResult": "P1-A, resolved: a DELETE result (and its lookup) for a never-scheduled DRAFT is accepted at schedule generation 0, and only it; its lookup's currentScheduleGeneration can never be lower than the result's.",
+      "responses.cancelRemainingAgainResult": "P2, resolved: a schedule keeps its first end request through a later REMAINING cancel, which only lowers lastOccurrence under a new schedule version.",
+      "responses.cancelSeriesAfterTruncationResult": "P2, resolved: a CANCELLED schedule keeps its first end request while endedOperationKey names the later cancel that ended it.",
+      "responses.deleteAfterTruncationResult": "P2, resolved: a SUPERSEDED_BY_DELETE (or HALTED) schedule may keep an earlier end request.",
+      "responses.cancelRemainingPendingResult": "P2, resolved: ENDS_AFTER_REMAINING names a truncated series that still has an earlier pending occurrence or future occurrences up to lastOccurrence; ENDS_AFTER_IN_FLIGHT stays for an admitted or unresolved remainder only.",
+      "responses.releasePreviewParagraph": "Resolved: a cover carries byteLength and mimeType under the same bounds as its media, so the release hash binds them."
+    }
+  },
+  "context": {
+    "policy": {
+      "grantedAt": "2026-11-03T23:00:00.000Z",
+      "expiresAt": "2026-11-10T23:00:00.000Z"
+    }
+  },
+  "requests": {
+    "scheduleOnce": {
+      "kind": "SCHEDULE",
+      "target": "00000000-0000-4000-8001-000000000005",
+      "now": "2026-11-04T08:00:00.000Z",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:schedule-once:0001",
+        "expectedRevision": 1,
+        "expectedBindingGeneration": 1,
+        "expectedScheduleGeneration": 0,
+        "releaseHash": "sha256:fd07fd07fd07fd07fd07fd07fd07fd07fd07fd07fd07fd07fd07fd07fd07fd07",
+        "contentSha256": "fd08fd08fd08fd08fd08fd08fd08fd08fd08fd08fd08fd08fd08fd08fd08fd08",
+        "codec": "ww-plain-escape-v1",
+        "maxLatenessMs": 600000,
+        "publishAt": "2026-11-05T12:00:00.000Z",
+        "repeat": null
+      }
+    },
+    "scheduleRepeat": {
+      "kind": "SCHEDULE",
+      "target": "00000000-0000-4000-8001-000000000001",
+      "now": "2026-11-04T08:00:00.000Z",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:schedule-repeat:0001",
+        "expectedRevision": 3,
+        "expectedBindingGeneration": 1,
+        "expectedScheduleGeneration": 0,
+        "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+        "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+        "codec": "ww-plain-escape-v1",
+        "maxLatenessMs": 900000,
+        "publishAt": "2026-11-04T09:00:00.000Z",
+        "repeat": {
+          "intervalDays": 1,
+          "maxOccurrences": 7,
+          "dueAts": [
+            "2026-11-04T09:00:00.000Z",
+            "2026-11-05T09:00:00.000Z",
+            "2026-11-06T09:00:00.000Z",
+            "2026-11-07T09:00:00.000Z",
+            "2026-11-08T09:00:00.000Z",
+            "2026-11-09T09:00:00.000Z",
+            "2026-11-10T09:00:00.000Z"
+          ]
+        }
+      }
+    },
+    "publishNow": {
+      "kind": "PUBLISH_NOW",
+      "target": "00000000-0000-4000-8001-000000000002",
+      "now": "2026-11-04T10:00:00.000Z",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:publish-now:0001",
+        "expectedRevision": 1,
+        "expectedBindingGeneration": 1,
+        "expectedScheduleGeneration": 0,
+        "releaseHash": "sha256:fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03",
+        "contentSha256": "fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04",
+        "codec": "ww-plain-paragraph-escape-v1",
+        "maxLatenessMs": 300000
+      }
+    },
+    "cancelOccurrence0": {
+      "kind": "CANCEL",
+      "target": "00000000-0000-4000-8001-000000000001",
+      "stored": {
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000010",
+            "occurrence": 0,
+            "status": "PENDING",
+            "dispatchVersion": 1
+          }
+        ]
+      },
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:cancel-occurrence:0001",
+        "expectedRevision": 3,
+        "expectedScheduleGeneration": 1,
+        "scheduleId": "00000000-0000-4000-8002-000000000001",
+        "expectedScheduleVersion": 1,
+        "affected": [
+          {
+            "state": "PENDING",
+            "occurrence": 0,
+            "dueAt": "2026-11-04T09:00:00.000Z",
+            "dispatchId": "00000000-0000-4000-8003-000000000010",
+            "expectedDispatchVersion": 1
+          }
+        ],
+        "affectedHash": "sha256:fd11fd11fd11fd11fd11fd11fd11fd11fd11fd11fd11fd11fd11fd11fd11fd11",
+        "scope": "OCCURRENCE",
+        "occurrence": 0
+      }
+    },
+    "cancelRemainingFutureOnly": {
+      "kind": "CANCEL",
+      "target": "00000000-0000-4000-8001-000000000001",
+      "stored": {
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000010",
+            "occurrence": 0,
+            "status": "ADMITTED",
+            "dispatchVersion": 2
+          }
+        ]
+      },
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:cancel-remaining:0001",
+        "expectedRevision": 3,
+        "expectedScheduleGeneration": 1,
+        "scheduleId": "00000000-0000-4000-8002-000000000001",
+        "expectedScheduleVersion": 1,
+        "affected": [
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 1,
+            "dueAt": "2026-11-05T09:00:00.000Z"
+          },
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 2,
+            "dueAt": "2026-11-06T09:00:00.000Z"
+          },
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 3,
+            "dueAt": "2026-11-07T09:00:00.000Z"
+          },
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 4,
+            "dueAt": "2026-11-08T09:00:00.000Z"
+          },
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 5,
+            "dueAt": "2026-11-09T09:00:00.000Z"
+          },
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 6,
+            "dueAt": "2026-11-10T09:00:00.000Z"
+          }
+        ],
+        "affectedHash": "sha256:fd12fd12fd12fd12fd12fd12fd12fd12fd12fd12fd12fd12fd12fd12fd12fd12",
+        "scope": "REMAINING",
+        "fromOccurrence": 1,
+        "inFlight": {
+          "occurrence": 0,
+          "dispatchId": "00000000-0000-4000-8003-000000000010",
+          "expectedStatus": "ADMITTED",
+          "expectedDispatchVersion": 2
+        }
+      }
+    },
+    "cancelSeries": {
+      "kind": "CANCEL",
+      "target": "00000000-0000-4000-8001-000000000001",
+      "stored": {
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000010",
+            "occurrence": 0,
+            "status": "PUBLISHED",
+            "dispatchVersion": 6
+          },
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000011",
+            "occurrence": 1,
+            "status": "PENDING",
+            "dispatchVersion": 1
+          }
+        ]
+      },
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:cancel-series:0001",
+        "expectedRevision": 3,
+        "expectedScheduleGeneration": 1,
+        "scheduleId": "00000000-0000-4000-8002-000000000001",
+        "expectedScheduleVersion": 1,
+        "affected": [
+          {
+            "state": "PENDING",
+            "occurrence": 1,
+            "dueAt": "2026-11-05T09:00:00.000Z",
+            "dispatchId": "00000000-0000-4000-8003-000000000011",
+            "expectedDispatchVersion": 1
+          },
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 2,
+            "dueAt": "2026-11-06T09:00:00.000Z"
+          },
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 3,
+            "dueAt": "2026-11-07T09:00:00.000Z"
+          },
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 4,
+            "dueAt": "2026-11-08T09:00:00.000Z"
+          },
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 5,
+            "dueAt": "2026-11-09T09:00:00.000Z"
+          },
+          {
+            "state": "NOT_MATERIALIZED",
+            "occurrence": 6,
+            "dueAt": "2026-11-10T09:00:00.000Z"
+          }
+        ],
+        "affectedHash": "sha256:fd13fd13fd13fd13fd13fd13fd13fd13fd13fd13fd13fd13fd13fd13fd13fd13",
+        "scope": "SERIES"
+      }
+    },
+    "deleteDraft": {
+      "kind": "DELETE",
+      "target": "00000000-0000-4000-8001-000000000003",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:delete-draft:0001",
+        "expectedRevision": 1,
+        "expectedScheduleGeneration": 0,
+        "expectedLifecycle": "DRAFT",
+        "effect": "RETAINED_SOFT_DELETE",
+        "cancels": null
+      }
+    },
+    "deletePublished": {
+      "kind": "DELETE",
+      "target": "00000000-0000-4000-8001-000000000002",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:delete-published:0001",
+        "expectedRevision": 1,
+        "expectedScheduleGeneration": 1,
+        "expectedLifecycle": "PUBLISHED",
+        "effect": "RETAINED_SOFT_DELETE",
+        "cancels": null
+      }
+    },
+    "deleteScheduled": {
+      "kind": "DELETE",
+      "target": "00000000-0000-4000-8001-000000000001",
+      "stored": {
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000010",
+            "occurrence": 0,
+            "status": "PENDING",
+            "dispatchVersion": 1
+          }
+        ]
+      },
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:delete-scheduled:0001",
+        "expectedRevision": 3,
+        "expectedScheduleGeneration": 1,
+        "expectedLifecycle": "SCHEDULED",
+        "effect": "RETAINED_SOFT_DELETE",
+        "cancels": {
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "expectedScheduleVersion": 1,
+          "affected": [
+            {
+              "state": "PENDING",
+              "occurrence": 0,
+              "dueAt": "2026-11-04T09:00:00.000Z",
+              "dispatchId": "00000000-0000-4000-8003-000000000010",
+              "expectedDispatchVersion": 1
+            },
+            {
+              "state": "NOT_MATERIALIZED",
+              "occurrence": 1,
+              "dueAt": "2026-11-05T09:00:00.000Z"
+            },
+            {
+              "state": "NOT_MATERIALIZED",
+              "occurrence": 2,
+              "dueAt": "2026-11-06T09:00:00.000Z"
+            },
+            {
+              "state": "NOT_MATERIALIZED",
+              "occurrence": 3,
+              "dueAt": "2026-11-07T09:00:00.000Z"
+            },
+            {
+              "state": "NOT_MATERIALIZED",
+              "occurrence": 4,
+              "dueAt": "2026-11-08T09:00:00.000Z"
+            },
+            {
+              "state": "NOT_MATERIALIZED",
+              "occurrence": 5,
+              "dueAt": "2026-11-09T09:00:00.000Z"
+            },
+            {
+              "state": "NOT_MATERIALIZED",
+              "occurrence": 6,
+              "dueAt": "2026-11-10T09:00:00.000Z"
+            }
+          ],
+          "affectedHash": "sha256:fd14fd14fd14fd14fd14fd14fd14fd14fd14fd14fd14fd14fd14fd14fd14fd14"
+        }
+      }
+    },
+    "resolveUnknown": {
+      "kind": "RESOLVE",
+      "target": "00000000-0000-4000-8003-000000000020",
+      "admittedAt": "2026-11-04T10:00:01.000Z",
+      "now": "2026-11-04T11:05:00.000Z",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:resolve-unknown:0001",
+        "expectedDispatchVersion": 3,
+        "expectedStatus": "UNKNOWN",
+        "expectedScheduleGeneration": 1,
+        "resolution": "RESOLVED_PUBLISHED",
+        "evidence": {
+          "source": "HUMAN_OBSERVATION",
+          "observedAt": "2026-11-04T11:00:00.000Z",
+          "note": "Synthetic fixture: the post was seen on the profile."
+        },
+        "members": [
+          {
+            "position": 0,
+            "postId": "fixture-post-p2-m0",
+            "expectedStatus": "UNKNOWN",
+            "outcome": "PUBLISHED",
+            "releaseURL": "https://www.example.com/fixture/release/0001",
+            "releaseId": null
+          }
+        ]
+      }
+    },
+    "resolvePartial": {
+      "kind": "RESOLVE",
+      "target": "00000000-0000-4000-8003-000000000040",
+      "admittedAt": "2026-11-04T12:00:03.000Z",
+      "now": "2026-11-04T13:00:00.000Z",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:resolve-partial:0001",
+        "expectedDispatchVersion": 5,
+        "expectedStatus": "PARTIAL",
+        "expectedScheduleGeneration": 1,
+        "resolution": "RESOLVED_ABANDONED",
+        "evidence": {
+          "source": "HUMAN_OBSERVATION",
+          "observedAt": "2026-11-04T12:45:00.000Z",
+          "note": "Synthetic fixture: the comment is not under the post."
+        },
+        "members": [
+          {
+            "position": 0,
+            "postId": "fixture-post-p4-m0",
+            "expectedStatus": "PUBLISHED",
+            "outcome": null,
+            "releaseURL": null,
+            "releaseId": null
+          },
+          {
+            "position": 1,
+            "postId": "fixture-post-p4-m1",
+            "expectedStatus": "UNKNOWN",
+            "outcome": "NOT_PUBLISHED",
+            "releaseURL": null,
+            "releaseId": null
+          }
+        ]
+      }
+    }
+  },
+  "responses": {
+    "releasePreview": {
+      "parser": "RELEASE_PREVIEW",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "hashVersion": "ww-release-hash-v1",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "revision": 3,
+        "bindingGeneration": 1,
+        "integrationId": "fixture-integration-0001",
+        "providerIdentifier": "instagram-standalone",
+        "identityFingerprint": "sha256:fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21",
+        "codec": "ww-plain-escape-v1",
+        "settingsHash": "sha256:fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22",
+        "members": [
+          {
+            "position": 0,
+            "delay": 0,
+            "content": "Say \"hi\" &amp; 'bye' &lt;3\n\tTab&nbsp;NBSP, literal &amp;lt;p&amp;gt; and &amp;nbsp; stay text 🎉 é",
+            "text": "Say \"hi\" & 'bye' <3\n\tTab NBSP, literal &lt;p&gt; and &nbsp; stay text 🎉 é",
+            "media": [
+              {
+                "position": 0,
+                "mediaId": "fixture-media-0001",
+                "evidenceId": "fixture-evidence-0001",
+                "sha256": "fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1",
+                "byteLength": 48213,
+                "mimeType": "image/jpeg",
+                "alt": "Synthetic fixture image",
+                "thumbnail": null,
+                "thumbnailTimestampMs": null
+              }
+            ]
+          },
+          {
+            "position": 1,
+            "delay": 5,
+            "content": "Comment with a literal &amp;amp; entity",
+            "text": "Comment with a literal &amp; entity",
+            "media": []
+          }
+        ],
+        "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01"
+      }
+    },
+    "releasePreviewParagraph": {
+      "parser": "RELEASE_PREVIEW",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "hashVersion": "ww-release-hash-v1",
+        "managedPostId": "00000000-0000-4000-8001-000000000002",
+        "revision": 1,
+        "bindingGeneration": 1,
+        "integrationId": "fixture-integration-0001",
+        "providerIdentifier": "instagram-standalone",
+        "identityFingerprint": "sha256:fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23",
+        "codec": "ww-plain-paragraph-escape-v1",
+        "settingsHash": "sha256:fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24",
+        "members": [
+          {
+            "position": 0,
+            "delay": 0,
+            "content": "<p>Quote \"x\" &amp; tab\there&nbsp;👋</p>",
+            "text": "Quote \"x\" & tab\there 👋",
+            "media": [
+              {
+                "position": 0,
+                "mediaId": "fixture-media-0002",
+                "evidenceId": "fixture-evidence-0002",
+                "sha256": "fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2",
+                "byteLength": 1048576,
+                "mimeType": "video/mp4",
+                "alt": null,
+                "thumbnail": {
+                  "mediaId": "fixture-media-0003",
+                  "evidenceId": "fixture-evidence-0003",
+                  "sha256": "fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3",
+                  "byteLength": 20480,
+                  "mimeType": "image/jpeg"
+                },
+                "thumbnailTimestampMs": null
+              }
+            ]
+          }
+        ],
+        "releaseHash": "sha256:fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03"
+      }
+    },
+    "capabilitiesClosed": {
+      "parser": "CAPABILITIES",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "draftCapabilities": "ww-managed-capabilities-v2",
+        "gates": {
+          "organization": "NOT_ENABLED",
+          "dispatcher": "NOT_AVAILABLE",
+          "media": "NOT_READY",
+          "policy": "CLOSED",
+          "grantedAt": null,
+          "expiresAt": null
+        },
+        "publication": {
+          "qualified": false,
+          "providers": []
+        },
+        "rules": {
+          "routes": [
+            {
+              "name": "capabilities",
+              "method": "GET",
+              "path": "/managed/v1/lifecycle/capabilities",
+              "scope": "posts:read"
+            },
+            {
+              "name": "schedule",
+              "method": "POST",
+              "path": "/managed/v1/posts/:managedPostId/schedule",
+              "scope": "posts:schedule"
+            },
+            {
+              "name": "publish-now",
+              "method": "POST",
+              "path": "/managed/v1/posts/:managedPostId/publish-now",
+              "scope": "posts:publish"
+            },
+            {
+              "name": "cancel",
+              "method": "POST",
+              "path": "/managed/v1/posts/:managedPostId/cancel",
+              "scope": "posts:schedule"
+            },
+            {
+              "name": "delete",
+              "method": "POST",
+              "path": "/managed/v1/posts/:managedPostId/delete",
+              "scope": "posts:schedule"
+            },
+            {
+              "name": "lifecycle",
+              "method": "GET",
+              "path": "/managed/v1/posts/:managedPostId/lifecycle",
+              "scope": "posts:read"
+            },
+            {
+              "name": "dispatch",
+              "method": "GET",
+              "path": "/managed/v1/dispatches/:dispatchId",
+              "scope": "posts:read"
+            },
+            {
+              "name": "resolve",
+              "method": "POST",
+              "path": "/managed/v1/dispatches/:dispatchId/resolve",
+              "scope": "posts:publish"
+            },
+            {
+              "name": "operation",
+              "method": "GET",
+              "path": "/managed/v1/lifecycle/operations/:operationKey",
+              "scope": "posts:read"
+            },
+            {
+              "name": "events",
+              "method": "GET",
+              "path": "/managed/v1/lifecycle/events",
+              "scope": "posts:read"
+            },
+            {
+              "name": "release-preview",
+              "method": "GET",
+              "path": "/managed/v1/lifecycle/release-preview/:managedPostId",
+              "scope": "posts:read"
+            }
+          ],
+          "operationKey": {
+            "pattern": "^[A-Za-z0-9._:-]{8,128}$",
+            "namespace": "SHARED_WITH_DRAFTS",
+            "otherKind": "OPERATION_KEY_KIND_MISMATCH"
+          },
+          "payloadHash": {
+            "excludes": [
+              "version",
+              "operationKey"
+            ],
+            "nulls": "HASHED",
+            "absentKeys": "REFUSED"
+          },
+          "codecs": [
+            "ww-plain-escape-v1",
+            "ww-plain-paragraph-escape-v1"
+          ],
+          "text": {
+            "rules": {
+              "version": "ww-managed-publication-text-v1",
+              "codecs": [
+                "ww-plain-escape-v1",
+                "ww-plain-paragraph-escape-v1"
+              ],
+              "editors": [
+                "normal"
+              ],
+              "entities": [
+                "&amp;",
+                "&lt;",
+                "&gt;",
+                "&nbsp;"
+              ],
+              "decoding": "ONE_PASS_CANONICAL_ROUND_TRIP",
+              "refusedInput": [
+                "C0_EXCEPT_LF_TAB",
+                "DEL",
+                "C1",
+                "U+2028",
+                "U+2029",
+                "LONE_SURROGATE"
+              ],
+              "characterMeasure": "CLASS_VALIDATOR_MAX_LENGTH",
+              "maxCharacters": 100000,
+              "maxUtf16CodeUnits": 300000,
+              "legacyDraftAcceptanceDoesNotQualifyPublication": true
+            },
+            "checkedAt": [
+              "RELEASE_PREVIEW",
+              "REQUEST_ACCEPTANCE",
+              "ADMISSION"
+            ],
+            "upstreamConverter": "NOT_USED"
+          },
+          "releaseHash": {
+            "version": "ww-release-hash-v1",
+            "boundSeparately": [
+              "SCHEDULE_GENERATION",
+              "DUE_AT"
+            ],
+            "digest": "SHA256_CANONICAL_JSON_SORTED_KEYS",
+            "settingsHash": {
+              "input": "APPROVED_PROVIDER_SETTINGS",
+              "excludes": [
+                "__type"
+              ]
+            },
+            "media": [
+              "SHA256",
+              "BYTE_LENGTH",
+              "MIME_TYPE"
+            ],
+            "cover": [
+              "SHA256",
+              "BYTE_LENGTH",
+              "MIME_TYPE"
+            ]
+          },
+          "approval": {
+            "contentSha256": "WW_APPROVED_PAYLOAD_STORED_AS_SENT",
+            "releaseHash": "DERIVED_INDEPENDENTLY",
+            "frozenWith": [
+              "REVISION",
+              "BINDING_GENERATION",
+              "SCHEDULE_GENERATION",
+              "AFFECTED_SCOPE"
+            ],
+            "releasePreview": "COMPARISON_ONLY"
+          },
+          "window": {
+            "appliesTo": [
+              "SCHEDULE",
+              "PUBLISH_NOW",
+              "ADMISSION",
+              "PROVIDER_REQUEST"
+            ],
+            "maxExpiresAt": "2026-11-10T23:00:00.000Z",
+            "expiry": "EXCLUSIVE",
+            "maxPolicyDays": 7,
+            "minLeadMs": 60000,
+            "maxLatenessMs": 3600000,
+            "schedule": "CAPTURED_IMMUTABLE",
+            "laterPolicy": "NEVER_EXTENDS"
+          },
+          "timing": {
+            "dispatcherTickMs": 5000,
+            "dueBatch": 10,
+            "leaseMarginMs": 30000,
+            "maxStepDeadlineMs": 120000,
+            "pollInitialDelayMs": 15000,
+            "pollBackoffFactor": 2,
+            "pollMaxDelayMs": 300000,
+            "pollDeadlineMs": 1800000,
+            "recommendedFeedPollSeconds": 60
+          },
+          "repeat": {
+            "minIntervalDays": 1,
+            "maxIntervalDays": 6,
+            "minOccurrences": 2,
+            "maxOccurrences": 7,
+            "anchoring": "PUBLISH_AT_PLUS_WHOLE_UTC_DAYS",
+            "materialization": "ONE_AT_A_TIME",
+            "materializeAfter": [
+              "PUBLISHED",
+              "RESOLVED_PUBLISHED",
+              "CANCELLED"
+            ],
+            "afterFailureOrUnknown": "NO_FURTHER_OCCURRENCE"
+          },
+          "cancel": {
+            "scopes": [
+              "OCCURRENCE",
+              "REMAINING",
+              "SERIES"
+            ],
+            "binding": [
+              "EXPECTED_SCHEDULE_VERSION",
+              "AFFECTED_OCCURRENCES",
+              "AFFECTED_HASH"
+            ],
+            "affectedHashVersion": "ww-affected-scope-v1",
+            "affectedAdmitted": "REFUSED",
+            "unaffectedAdmitted": "SETTLES_UNDER_ITS_OWN_BINDING",
+            "generation": "UNCHANGED",
+            "scheduleVersion": "ADVANCED",
+            "endRequest": "FIRST_RETAINED",
+            "truncation": "ONLY_LOWERS_LAST_OCCURRENCE",
+            "series": [
+              "CONTINUES",
+              "ENDS_AFTER_IN_FLIGHT",
+              "ENDS_AFTER_REMAINING",
+              "ENDED"
+            ]
+          },
+          "delete": {
+            "mode": "RETAINED_SOFT_DELETE",
+            "platformPost": "NEVER_DELETED",
+            "refusedWhile": [
+              "ADMITTED",
+              "UNKNOWN",
+              "PARTIAL"
+            ]
+          },
+          "resolve": {
+            "evidence": "HUMAN_OBSERVATION",
+            "resend": "NEVER",
+            "providerCalls": "NONE"
+          },
+          "budget": {
+            "bucket": "ORGANIZATION_SHARED",
+            "perHour": 200,
+            "reservation": "BEFORE_IO",
+            "unitsPerRequest": 1,
+            "counted": [
+              "LIFECYCLE_API_REQUEST",
+              "PROVIDER_MUTATION_REQUEST",
+              "PROVIDER_STATUS_READ",
+              "PROVIDER_INTERNAL_REQUEST",
+              "MEDIA_CAPABILITY_FETCH"
+            ],
+            "step": {
+              "units": "ADAPTER_DECLARED",
+              "maxUnits": 32,
+              "reservedBefore": "ADMISSION",
+              "unusedUnits": "KEPT",
+              "beyondReservation": "UNKNOWN_ONCE_ANY_SENT"
+            },
+            "poll": "RESERVED_PER_POLL",
+            "mediaFetch": "RESERVED_PER_FETCH_BEFORE_STORAGE_READ",
+            "unavailable": "NO_ADMISSION",
+            "exhaustedBeforeAdmission": "DEFERRED",
+            "exhaustedAfterAdmission": "NEVER_RESENT"
+          },
+          "dispatch": {
+            "notSentProof": "TRANSPORT_SENT_LEDGER",
+            "adapterAssertion": "NOT_PROOF",
+            "ambiguous": "UNKNOWN_NEVER_RESENT"
+          },
+          "media": {
+            "delivery": "DIGEST_PINNED_CAPABILITY_FETCH",
+            "capability": "ww-media-capability-v1",
+            "source": "PRIVATE_RUNTIME_VOLUME",
+            "scope": "ONE_ADMITTED_CALL",
+            "verifies": [
+              "SHA256",
+              "BYTE_LENGTH",
+              "MIME_TYPE",
+              "CURRENT_REVISION",
+              "SCOPE",
+              "EXPIRY",
+              "REVOCATION"
+            ],
+            "ranges": "FROM_VERIFIED_OBJECT_ONLY",
+            "revoked": "WHEN_CALL_SETTLES",
+            "token": "NEVER_HASHED_LOGGED_OR_ANSWERED",
+            "readiness": "GATED"
+          },
+          "events": {
+            "feed": "SEPARATE_FROM_DRAFT_FEED",
+            "kinds": [
+              "POST_SCHEDULED",
+              "POST_PUBLISH_REQUESTED",
+              "POST_SCHEDULE_CANCELLED",
+              "POST_OCCURRENCE_CANCELLED",
+              "POST_DELETED",
+              "OCCURRENCE_MATERIALIZED",
+              "OCCURRENCE_EXPIRED",
+              "DISPATCH_ADMITTED",
+              "DISPATCH_PROGRESSED",
+              "DISPATCH_NOT_SENT",
+              "DISPATCH_PUBLISHED",
+              "DISPATCH_REJECTED",
+              "DISPATCH_PARTIAL",
+              "DISPATCH_OUTCOME_UNKNOWN",
+              "DISPATCH_RESOLVED"
+            ],
+            "pageMax": 100,
+            "projection": "LIFECYCLE_VIEW"
+          }
+        }
+      }
+    },
+    "capabilitiesEligibleMedia": {
+      "parser": "CAPABILITIES",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "draftCapabilities": "ww-managed-capabilities-v2",
+        "gates": {
+          "organization": "ENABLED",
+          "dispatcher": "AVAILABLE",
+          "media": "READY",
+          "policy": "OPEN",
+          "grantedAt": "2026-11-03T23:00:00.000Z",
+          "expiresAt": "2026-11-10T23:00:00.000Z"
+        },
+        "publication": {
+          "qualified": true,
+          "providers": [
+            {
+              "identifier": "instagram-standalone",
+              "editor": "normal",
+              "requiresMedia": true,
+              "maxStepUnits": 4,
+              "maxStepDeadlineMs": 60000
+            }
+          ]
+        },
+        "rules": {
+          "routes": [
+            {
+              "name": "capabilities",
+              "method": "GET",
+              "path": "/managed/v1/lifecycle/capabilities",
+              "scope": "posts:read"
+            },
+            {
+              "name": "schedule",
+              "method": "POST",
+              "path": "/managed/v1/posts/:managedPostId/schedule",
+              "scope": "posts:schedule"
+            },
+            {
+              "name": "publish-now",
+              "method": "POST",
+              "path": "/managed/v1/posts/:managedPostId/publish-now",
+              "scope": "posts:publish"
+            },
+            {
+              "name": "cancel",
+              "method": "POST",
+              "path": "/managed/v1/posts/:managedPostId/cancel",
+              "scope": "posts:schedule"
+            },
+            {
+              "name": "delete",
+              "method": "POST",
+              "path": "/managed/v1/posts/:managedPostId/delete",
+              "scope": "posts:schedule"
+            },
+            {
+              "name": "lifecycle",
+              "method": "GET",
+              "path": "/managed/v1/posts/:managedPostId/lifecycle",
+              "scope": "posts:read"
+            },
+            {
+              "name": "dispatch",
+              "method": "GET",
+              "path": "/managed/v1/dispatches/:dispatchId",
+              "scope": "posts:read"
+            },
+            {
+              "name": "resolve",
+              "method": "POST",
+              "path": "/managed/v1/dispatches/:dispatchId/resolve",
+              "scope": "posts:publish"
+            },
+            {
+              "name": "operation",
+              "method": "GET",
+              "path": "/managed/v1/lifecycle/operations/:operationKey",
+              "scope": "posts:read"
+            },
+            {
+              "name": "events",
+              "method": "GET",
+              "path": "/managed/v1/lifecycle/events",
+              "scope": "posts:read"
+            },
+            {
+              "name": "release-preview",
+              "method": "GET",
+              "path": "/managed/v1/lifecycle/release-preview/:managedPostId",
+              "scope": "posts:read"
+            }
+          ],
+          "operationKey": {
+            "pattern": "^[A-Za-z0-9._:-]{8,128}$",
+            "namespace": "SHARED_WITH_DRAFTS",
+            "otherKind": "OPERATION_KEY_KIND_MISMATCH"
+          },
+          "payloadHash": {
+            "excludes": [
+              "version",
+              "operationKey"
+            ],
+            "nulls": "HASHED",
+            "absentKeys": "REFUSED"
+          },
+          "codecs": [
+            "ww-plain-escape-v1",
+            "ww-plain-paragraph-escape-v1"
+          ],
+          "text": {
+            "rules": {
+              "version": "ww-managed-publication-text-v1",
+              "codecs": [
+                "ww-plain-escape-v1",
+                "ww-plain-paragraph-escape-v1"
+              ],
+              "editors": [
+                "normal"
+              ],
+              "entities": [
+                "&amp;",
+                "&lt;",
+                "&gt;",
+                "&nbsp;"
+              ],
+              "decoding": "ONE_PASS_CANONICAL_ROUND_TRIP",
+              "refusedInput": [
+                "C0_EXCEPT_LF_TAB",
+                "DEL",
+                "C1",
+                "U+2028",
+                "U+2029",
+                "LONE_SURROGATE"
+              ],
+              "characterMeasure": "CLASS_VALIDATOR_MAX_LENGTH",
+              "maxCharacters": 100000,
+              "maxUtf16CodeUnits": 300000,
+              "legacyDraftAcceptanceDoesNotQualifyPublication": true
+            },
+            "checkedAt": [
+              "RELEASE_PREVIEW",
+              "REQUEST_ACCEPTANCE",
+              "ADMISSION"
+            ],
+            "upstreamConverter": "NOT_USED"
+          },
+          "releaseHash": {
+            "version": "ww-release-hash-v1",
+            "boundSeparately": [
+              "SCHEDULE_GENERATION",
+              "DUE_AT"
+            ],
+            "digest": "SHA256_CANONICAL_JSON_SORTED_KEYS",
+            "settingsHash": {
+              "input": "APPROVED_PROVIDER_SETTINGS",
+              "excludes": [
+                "__type"
+              ]
+            },
+            "media": [
+              "SHA256",
+              "BYTE_LENGTH",
+              "MIME_TYPE"
+            ],
+            "cover": [
+              "SHA256",
+              "BYTE_LENGTH",
+              "MIME_TYPE"
+            ]
+          },
+          "approval": {
+            "contentSha256": "WW_APPROVED_PAYLOAD_STORED_AS_SENT",
+            "releaseHash": "DERIVED_INDEPENDENTLY",
+            "frozenWith": [
+              "REVISION",
+              "BINDING_GENERATION",
+              "SCHEDULE_GENERATION",
+              "AFFECTED_SCOPE"
+            ],
+            "releasePreview": "COMPARISON_ONLY"
+          },
+          "window": {
+            "appliesTo": [
+              "SCHEDULE",
+              "PUBLISH_NOW",
+              "ADMISSION",
+              "PROVIDER_REQUEST"
+            ],
+            "maxExpiresAt": "2026-11-10T23:00:00.000Z",
+            "expiry": "EXCLUSIVE",
+            "maxPolicyDays": 7,
+            "minLeadMs": 60000,
+            "maxLatenessMs": 3600000,
+            "schedule": "CAPTURED_IMMUTABLE",
+            "laterPolicy": "NEVER_EXTENDS"
+          },
+          "timing": {
+            "dispatcherTickMs": 5000,
+            "dueBatch": 10,
+            "leaseMarginMs": 30000,
+            "maxStepDeadlineMs": 120000,
+            "pollInitialDelayMs": 15000,
+            "pollBackoffFactor": 2,
+            "pollMaxDelayMs": 300000,
+            "pollDeadlineMs": 1800000,
+            "recommendedFeedPollSeconds": 60
+          },
+          "repeat": {
+            "minIntervalDays": 1,
+            "maxIntervalDays": 6,
+            "minOccurrences": 2,
+            "maxOccurrences": 7,
+            "anchoring": "PUBLISH_AT_PLUS_WHOLE_UTC_DAYS",
+            "materialization": "ONE_AT_A_TIME",
+            "materializeAfter": [
+              "PUBLISHED",
+              "RESOLVED_PUBLISHED",
+              "CANCELLED"
+            ],
+            "afterFailureOrUnknown": "NO_FURTHER_OCCURRENCE"
+          },
+          "cancel": {
+            "scopes": [
+              "OCCURRENCE",
+              "REMAINING",
+              "SERIES"
+            ],
+            "binding": [
+              "EXPECTED_SCHEDULE_VERSION",
+              "AFFECTED_OCCURRENCES",
+              "AFFECTED_HASH"
+            ],
+            "affectedHashVersion": "ww-affected-scope-v1",
+            "affectedAdmitted": "REFUSED",
+            "unaffectedAdmitted": "SETTLES_UNDER_ITS_OWN_BINDING",
+            "generation": "UNCHANGED",
+            "scheduleVersion": "ADVANCED",
+            "endRequest": "FIRST_RETAINED",
+            "truncation": "ONLY_LOWERS_LAST_OCCURRENCE",
+            "series": [
+              "CONTINUES",
+              "ENDS_AFTER_IN_FLIGHT",
+              "ENDS_AFTER_REMAINING",
+              "ENDED"
+            ]
+          },
+          "delete": {
+            "mode": "RETAINED_SOFT_DELETE",
+            "platformPost": "NEVER_DELETED",
+            "refusedWhile": [
+              "ADMITTED",
+              "UNKNOWN",
+              "PARTIAL"
+            ]
+          },
+          "resolve": {
+            "evidence": "HUMAN_OBSERVATION",
+            "resend": "NEVER",
+            "providerCalls": "NONE"
+          },
+          "budget": {
+            "bucket": "ORGANIZATION_SHARED",
+            "perHour": 200,
+            "reservation": "BEFORE_IO",
+            "unitsPerRequest": 1,
+            "counted": [
+              "LIFECYCLE_API_REQUEST",
+              "PROVIDER_MUTATION_REQUEST",
+              "PROVIDER_STATUS_READ",
+              "PROVIDER_INTERNAL_REQUEST",
+              "MEDIA_CAPABILITY_FETCH"
+            ],
+            "step": {
+              "units": "ADAPTER_DECLARED",
+              "maxUnits": 32,
+              "reservedBefore": "ADMISSION",
+              "unusedUnits": "KEPT",
+              "beyondReservation": "UNKNOWN_ONCE_ANY_SENT"
+            },
+            "poll": "RESERVED_PER_POLL",
+            "mediaFetch": "RESERVED_PER_FETCH_BEFORE_STORAGE_READ",
+            "unavailable": "NO_ADMISSION",
+            "exhaustedBeforeAdmission": "DEFERRED",
+            "exhaustedAfterAdmission": "NEVER_RESENT"
+          },
+          "dispatch": {
+            "notSentProof": "TRANSPORT_SENT_LEDGER",
+            "adapterAssertion": "NOT_PROOF",
+            "ambiguous": "UNKNOWN_NEVER_RESENT"
+          },
+          "media": {
+            "delivery": "DIGEST_PINNED_CAPABILITY_FETCH",
+            "capability": "ww-media-capability-v1",
+            "source": "PRIVATE_RUNTIME_VOLUME",
+            "scope": "ONE_ADMITTED_CALL",
+            "verifies": [
+              "SHA256",
+              "BYTE_LENGTH",
+              "MIME_TYPE",
+              "CURRENT_REVISION",
+              "SCOPE",
+              "EXPIRY",
+              "REVOCATION"
+            ],
+            "ranges": "FROM_VERIFIED_OBJECT_ONLY",
+            "revoked": "WHEN_CALL_SETTLES",
+            "token": "NEVER_HASHED_LOGGED_OR_ANSWERED",
+            "readiness": "GATED"
+          },
+          "events": {
+            "feed": "SEPARATE_FROM_DRAFT_FEED",
+            "kinds": [
+              "POST_SCHEDULED",
+              "POST_PUBLISH_REQUESTED",
+              "POST_SCHEDULE_CANCELLED",
+              "POST_OCCURRENCE_CANCELLED",
+              "POST_DELETED",
+              "OCCURRENCE_MATERIALIZED",
+              "OCCURRENCE_EXPIRED",
+              "DISPATCH_ADMITTED",
+              "DISPATCH_PROGRESSED",
+              "DISPATCH_NOT_SENT",
+              "DISPATCH_PUBLISHED",
+              "DISPATCH_REJECTED",
+              "DISPATCH_PARTIAL",
+              "DISPATCH_OUTCOME_UNKNOWN",
+              "DISPATCH_RESOLVED"
+            ],
+            "pageMax": 100,
+            "projection": "LIFECYCLE_VIEW"
+          }
+        }
+      }
+    },
+    "acceptedResult": {
+      "parser": "RESULT",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:schedule-repeat:0001",
+        "payloadHash": "sha256:fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31",
+        "replayed": false,
+        "sequence": 1,
+        "committedAt": "2026-11-04T08:00:00.000Z",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "revision": 3,
+        "scheduleGeneration": 1,
+        "lifecycle": "SCHEDULED",
+        "schedule": {
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "managedPostId": "00000000-0000-4000-8001-000000000001",
+          "scheduleGeneration": 1,
+          "scheduleVersion": 1,
+          "mode": "AT",
+          "status": "ACTIVE",
+          "revision": 3,
+          "bindingGeneration": 1,
+          "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+          "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+          "codec": "ww-plain-escape-v1",
+          "anchorAt": "2026-11-04T09:00:00.000Z",
+          "intervalDays": 1,
+          "maxOccurrences": 7,
+          "dueAts": [
+            "2026-11-04T09:00:00.000Z",
+            "2026-11-05T09:00:00.000Z",
+            "2026-11-06T09:00:00.000Z",
+            "2026-11-07T09:00:00.000Z",
+            "2026-11-08T09:00:00.000Z",
+            "2026-11-09T09:00:00.000Z",
+            "2026-11-10T09:00:00.000Z"
+          ],
+          "windowEndsAt": "2026-11-10T23:00:00.000Z",
+          "maxLatenessMs": 900000,
+          "operationKey": "fixture:schedule-repeat:0001",
+          "lastOccurrence": 6,
+          "endRequestedOperationKey": null,
+          "endRequestedAt": null,
+          "endedAt": null,
+          "endedOperationKey": null,
+          "createdAt": "2026-11-04T08:00:00.000Z"
+        },
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000010",
+            "scheduleId": "00000000-0000-4000-8002-000000000001",
+            "managedPostId": "00000000-0000-4000-8001-000000000001",
+            "occurrence": 0,
+            "dueAt": "2026-11-04T09:00:00.000Z",
+            "admissibleUntil": "2026-11-04T09:15:00.000Z",
+            "status": "PENDING",
+            "dispatchVersion": 1,
+            "code": null,
+            "revision": 3,
+            "bindingGeneration": 1,
+            "scheduleGeneration": 1,
+            "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+            "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+            "members": [
+              {
+                "position": 0,
+                "postId": "fixture-post-p1-m0",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              },
+              {
+                "position": 1,
+                "postId": "fixture-post-p1-m1",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              }
+            ],
+            "deferral": null,
+            "continuation": null,
+            "admittedAt": null,
+            "settledAt": null,
+            "cancelledByOperationKey": null,
+            "resolution": null,
+            "createdAt": "2026-11-04T08:00:00.000Z",
+            "updatedAt": "2026-11-04T08:00:00.000Z"
+          }
+        ],
+        "kind": "SCHEDULE"
+      }
+    },
+    "publishNowResult": {
+      "parser": "RESULT",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:publish-now:0001",
+        "payloadHash": "sha256:fd32fd32fd32fd32fd32fd32fd32fd32fd32fd32fd32fd32fd32fd32fd32fd32",
+        "replayed": false,
+        "sequence": 5,
+        "committedAt": "2026-11-04T10:00:00.000Z",
+        "managedPostId": "00000000-0000-4000-8001-000000000002",
+        "revision": 1,
+        "scheduleGeneration": 1,
+        "lifecycle": "SCHEDULED",
+        "schedule": {
+          "scheduleId": "00000000-0000-4000-8002-000000000002",
+          "managedPostId": "00000000-0000-4000-8001-000000000002",
+          "scheduleGeneration": 1,
+          "scheduleVersion": 1,
+          "mode": "NOW",
+          "status": "ACTIVE",
+          "revision": 1,
+          "bindingGeneration": 1,
+          "releaseHash": "sha256:fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03",
+          "contentSha256": "fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04",
+          "codec": "ww-plain-paragraph-escape-v1",
+          "anchorAt": "2026-11-04T10:00:00.000Z",
+          "intervalDays": null,
+          "maxOccurrences": 1,
+          "dueAts": [
+            "2026-11-04T10:00:00.000Z"
+          ],
+          "windowEndsAt": "2026-11-10T23:00:00.000Z",
+          "maxLatenessMs": 300000,
+          "operationKey": "fixture:publish-now:0001",
+          "lastOccurrence": 0,
+          "endRequestedOperationKey": null,
+          "endRequestedAt": null,
+          "endedAt": null,
+          "endedOperationKey": null,
+          "createdAt": "2026-11-04T10:00:00.000Z"
+        },
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000020",
+            "scheduleId": "00000000-0000-4000-8002-000000000002",
+            "managedPostId": "00000000-0000-4000-8001-000000000002",
+            "occurrence": 0,
+            "dueAt": "2026-11-04T10:00:00.000Z",
+            "admissibleUntil": "2026-11-04T10:05:00.000Z",
+            "status": "PENDING",
+            "dispatchVersion": 1,
+            "code": null,
+            "revision": 1,
+            "bindingGeneration": 1,
+            "scheduleGeneration": 1,
+            "releaseHash": "sha256:fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03",
+            "contentSha256": "fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04",
+            "members": [
+              {
+                "position": 0,
+                "postId": "fixture-post-p2-m0",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              }
+            ],
+            "deferral": null,
+            "continuation": null,
+            "admittedAt": null,
+            "settledAt": null,
+            "cancelledByOperationKey": null,
+            "resolution": null,
+            "createdAt": "2026-11-04T10:00:00.000Z",
+            "updatedAt": "2026-11-04T10:00:00.000Z"
+          }
+        ],
+        "kind": "PUBLISH_NOW"
+      }
+    },
+    "cancelRemainingResult": {
+      "parser": "RESULT",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:cancel-remaining:0001",
+        "payloadHash": "sha256:fd33fd33fd33fd33fd33fd33fd33fd33fd33fd33fd33fd33fd33fd33fd33fd33",
+        "replayed": false,
+        "sequence": 7,
+        "committedAt": "2026-11-04T09:01:00.000Z",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "revision": 3,
+        "scheduleGeneration": 1,
+        "lifecycle": "DISPATCHING",
+        "schedule": {
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "managedPostId": "00000000-0000-4000-8001-000000000001",
+          "scheduleGeneration": 1,
+          "scheduleVersion": 2,
+          "mode": "AT",
+          "status": "ENDING",
+          "revision": 3,
+          "bindingGeneration": 1,
+          "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+          "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+          "codec": "ww-plain-escape-v1",
+          "anchorAt": "2026-11-04T09:00:00.000Z",
+          "intervalDays": 1,
+          "maxOccurrences": 7,
+          "dueAts": [
+            "2026-11-04T09:00:00.000Z",
+            "2026-11-05T09:00:00.000Z",
+            "2026-11-06T09:00:00.000Z",
+            "2026-11-07T09:00:00.000Z",
+            "2026-11-08T09:00:00.000Z",
+            "2026-11-09T09:00:00.000Z",
+            "2026-11-10T09:00:00.000Z"
+          ],
+          "windowEndsAt": "2026-11-10T23:00:00.000Z",
+          "maxLatenessMs": 900000,
+          "operationKey": "fixture:schedule-repeat:0001",
+          "lastOccurrence": 0,
+          "endRequestedOperationKey": "fixture:cancel-remaining:0001",
+          "endRequestedAt": "2026-11-04T09:01:00.000Z",
+          "endedAt": null,
+          "endedOperationKey": null,
+          "createdAt": "2026-11-04T08:00:00.000Z"
+        },
+        "dispatches": [],
+        "kind": "CANCEL",
+        "cancellation": {
+          "scope": "REMAINING",
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "cancelledOccurrences": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "series": "ENDS_AFTER_IN_FLIGHT",
+          "generation": "UNCHANGED",
+          "scheduleVersion": "ADVANCED"
+        }
+      }
+    },
+    "deleteScheduledResult": {
+      "parser": "RESULT",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:delete-scheduled:0001",
+        "payloadHash": "sha256:fd34fd34fd34fd34fd34fd34fd34fd34fd34fd34fd34fd34fd34fd34fd34fd34",
+        "replayed": false,
+        "sequence": 2,
+        "committedAt": "2026-11-04T08:30:00.000Z",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "revision": 3,
+        "scheduleGeneration": 1,
+        "lifecycle": "DELETED",
+        "schedule": {
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "managedPostId": "00000000-0000-4000-8001-000000000001",
+          "scheduleGeneration": 1,
+          "scheduleVersion": 2,
+          "mode": "AT",
+          "status": "SUPERSEDED_BY_DELETE",
+          "revision": 3,
+          "bindingGeneration": 1,
+          "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+          "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+          "codec": "ww-plain-escape-v1",
+          "anchorAt": "2026-11-04T09:00:00.000Z",
+          "intervalDays": 1,
+          "maxOccurrences": 7,
+          "dueAts": [
+            "2026-11-04T09:00:00.000Z",
+            "2026-11-05T09:00:00.000Z",
+            "2026-11-06T09:00:00.000Z",
+            "2026-11-07T09:00:00.000Z",
+            "2026-11-08T09:00:00.000Z",
+            "2026-11-09T09:00:00.000Z",
+            "2026-11-10T09:00:00.000Z"
+          ],
+          "windowEndsAt": "2026-11-10T23:00:00.000Z",
+          "maxLatenessMs": 900000,
+          "operationKey": "fixture:schedule-repeat:0001",
+          "lastOccurrence": 6,
+          "endRequestedOperationKey": null,
+          "endRequestedAt": null,
+          "endedAt": "2026-11-04T08:30:00.000Z",
+          "endedOperationKey": "fixture:delete-scheduled:0001",
+          "createdAt": "2026-11-04T08:00:00.000Z"
+        },
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000010",
+            "scheduleId": "00000000-0000-4000-8002-000000000001",
+            "managedPostId": "00000000-0000-4000-8001-000000000001",
+            "occurrence": 0,
+            "dueAt": "2026-11-04T09:00:00.000Z",
+            "admissibleUntil": "2026-11-04T09:15:00.000Z",
+            "status": "CANCELLED",
+            "dispatchVersion": 2,
+            "code": null,
+            "revision": 3,
+            "bindingGeneration": 1,
+            "scheduleGeneration": 1,
+            "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+            "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+            "members": [
+              {
+                "position": 0,
+                "postId": "fixture-post-p1-m0",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              },
+              {
+                "position": 1,
+                "postId": "fixture-post-p1-m1",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              }
+            ],
+            "deferral": null,
+            "continuation": null,
+            "admittedAt": null,
+            "settledAt": "2026-11-04T08:30:00.000Z",
+            "cancelledByOperationKey": "fixture:delete-scheduled:0001",
+            "resolution": null,
+            "createdAt": "2026-11-04T08:00:00.000Z",
+            "updatedAt": "2026-11-04T08:30:00.000Z"
+          }
+        ],
+        "kind": "DELETE",
+        "deletion": {
+          "mode": "RETAINED_SOFT_DELETE",
+          "platformPost": "NOT_DELETED",
+          "wasPublished": false,
+          "retainedPostIds": [
+            "fixture-post-p1-m0",
+            "fixture-post-p1-m1"
+          ],
+          "cancelledOccurrences": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        }
+      }
+    },
+    "deleteDraftResult": {
+      "parser": "RESULT",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:delete-draft:0001",
+        "payloadHash": "sha256:fd35fd35fd35fd35fd35fd35fd35fd35fd35fd35fd35fd35fd35fd35fd35fd35",
+        "replayed": false,
+        "sequence": 3,
+        "committedAt": "2026-11-04T08:40:00.000Z",
+        "managedPostId": "00000000-0000-4000-8001-000000000003",
+        "revision": 1,
+        "scheduleGeneration": 0,
+        "lifecycle": "DELETED",
+        "schedule": null,
+        "dispatches": [],
+        "kind": "DELETE",
+        "deletion": {
+          "mode": "RETAINED_SOFT_DELETE",
+          "platformPost": "NOT_DELETED",
+          "wasPublished": false,
+          "retainedPostIds": [
+            "fixture-post-p3-m0"
+          ],
+          "cancelledOccurrences": []
+        }
+      }
+    },
+    "cancelRemainingPendingResult": {
+      "parser": "RESULT",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:cancel-remaining-pending:0001",
+        "payloadHash": "sha256:fd36fd36fd36fd36fd36fd36fd36fd36fd36fd36fd36fd36fd36fd36fd36fd36",
+        "replayed": false,
+        "sequence": 11,
+        "committedAt": "2026-11-04T10:00:00.000Z",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "revision": 3,
+        "scheduleGeneration": 1,
+        "lifecycle": "SCHEDULED",
+        "schedule": {
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "managedPostId": "00000000-0000-4000-8001-000000000001",
+          "scheduleGeneration": 1,
+          "scheduleVersion": 2,
+          "mode": "AT",
+          "status": "ENDING",
+          "revision": 3,
+          "bindingGeneration": 1,
+          "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+          "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+          "codec": "ww-plain-escape-v1",
+          "anchorAt": "2026-11-04T09:00:00.000Z",
+          "intervalDays": 1,
+          "maxOccurrences": 7,
+          "dueAts": [
+            "2026-11-04T09:00:00.000Z",
+            "2026-11-05T09:00:00.000Z",
+            "2026-11-06T09:00:00.000Z",
+            "2026-11-07T09:00:00.000Z",
+            "2026-11-08T09:00:00.000Z",
+            "2026-11-09T09:00:00.000Z",
+            "2026-11-10T09:00:00.000Z"
+          ],
+          "windowEndsAt": "2026-11-10T23:00:00.000Z",
+          "maxLatenessMs": 900000,
+          "operationKey": "fixture:schedule-repeat:0001",
+          "lastOccurrence": 2,
+          "endRequestedOperationKey": "fixture:cancel-remaining-pending:0001",
+          "endRequestedAt": "2026-11-04T10:00:00.000Z",
+          "endedAt": null,
+          "endedOperationKey": null,
+          "createdAt": "2026-11-04T08:00:00.000Z"
+        },
+        "dispatches": [],
+        "kind": "CANCEL",
+        "cancellation": {
+          "scope": "REMAINING",
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "cancelledOccurrences": [
+            3,
+            4,
+            5,
+            6
+          ],
+          "series": "ENDS_AFTER_REMAINING",
+          "generation": "UNCHANGED",
+          "scheduleVersion": "ADVANCED"
+        }
+      }
+    },
+    "cancelRemainingAgainResult": {
+      "parser": "RESULT",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:cancel-remaining-again:0001",
+        "payloadHash": "sha256:fd37fd37fd37fd37fd37fd37fd37fd37fd37fd37fd37fd37fd37fd37fd37fd37",
+        "replayed": false,
+        "sequence": 12,
+        "committedAt": "2026-11-04T11:00:00.000Z",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "revision": 3,
+        "scheduleGeneration": 1,
+        "lifecycle": "SCHEDULED",
+        "schedule": {
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "managedPostId": "00000000-0000-4000-8001-000000000001",
+          "scheduleGeneration": 1,
+          "scheduleVersion": 3,
+          "mode": "AT",
+          "status": "ENDING",
+          "revision": 3,
+          "bindingGeneration": 1,
+          "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+          "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+          "codec": "ww-plain-escape-v1",
+          "anchorAt": "2026-11-04T09:00:00.000Z",
+          "intervalDays": 1,
+          "maxOccurrences": 7,
+          "dueAts": [
+            "2026-11-04T09:00:00.000Z",
+            "2026-11-05T09:00:00.000Z",
+            "2026-11-06T09:00:00.000Z",
+            "2026-11-07T09:00:00.000Z",
+            "2026-11-08T09:00:00.000Z",
+            "2026-11-09T09:00:00.000Z",
+            "2026-11-10T09:00:00.000Z"
+          ],
+          "windowEndsAt": "2026-11-10T23:00:00.000Z",
+          "maxLatenessMs": 900000,
+          "operationKey": "fixture:schedule-repeat:0001",
+          "lastOccurrence": 1,
+          "endRequestedOperationKey": "fixture:cancel-remaining-pending:0001",
+          "endRequestedAt": "2026-11-04T10:00:00.000Z",
+          "endedAt": null,
+          "endedOperationKey": null,
+          "createdAt": "2026-11-04T08:00:00.000Z"
+        },
+        "dispatches": [],
+        "kind": "CANCEL",
+        "cancellation": {
+          "scope": "REMAINING",
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "cancelledOccurrences": [
+            2
+          ],
+          "series": "ENDS_AFTER_REMAINING",
+          "generation": "UNCHANGED",
+          "scheduleVersion": "ADVANCED"
+        }
+      }
+    },
+    "cancelSeriesAfterTruncationResult": {
+      "parser": "RESULT",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:cancel-series-after-truncation:0001",
+        "payloadHash": "sha256:fd38fd38fd38fd38fd38fd38fd38fd38fd38fd38fd38fd38fd38fd38fd38fd38",
+        "replayed": false,
+        "sequence": 13,
+        "committedAt": "2026-11-04T12:00:00.000Z",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "revision": 3,
+        "scheduleGeneration": 1,
+        "lifecycle": "PUBLISHED",
+        "schedule": {
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "managedPostId": "00000000-0000-4000-8001-000000000001",
+          "scheduleGeneration": 1,
+          "scheduleVersion": 4,
+          "mode": "AT",
+          "status": "CANCELLED",
+          "revision": 3,
+          "bindingGeneration": 1,
+          "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+          "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+          "codec": "ww-plain-escape-v1",
+          "anchorAt": "2026-11-04T09:00:00.000Z",
+          "intervalDays": 1,
+          "maxOccurrences": 7,
+          "dueAts": [
+            "2026-11-04T09:00:00.000Z",
+            "2026-11-05T09:00:00.000Z",
+            "2026-11-06T09:00:00.000Z",
+            "2026-11-07T09:00:00.000Z",
+            "2026-11-08T09:00:00.000Z",
+            "2026-11-09T09:00:00.000Z",
+            "2026-11-10T09:00:00.000Z"
+          ],
+          "windowEndsAt": "2026-11-10T23:00:00.000Z",
+          "maxLatenessMs": 900000,
+          "operationKey": "fixture:schedule-repeat:0001",
+          "lastOccurrence": 1,
+          "endRequestedOperationKey": "fixture:cancel-remaining-pending:0001",
+          "endRequestedAt": "2026-11-04T10:00:00.000Z",
+          "endedAt": "2026-11-04T12:00:00.000Z",
+          "endedOperationKey": "fixture:cancel-series-after-truncation:0001",
+          "createdAt": "2026-11-04T08:00:00.000Z"
+        },
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000011",
+            "scheduleId": "00000000-0000-4000-8002-000000000001",
+            "managedPostId": "00000000-0000-4000-8001-000000000001",
+            "occurrence": 1,
+            "dueAt": "2026-11-05T09:00:00.000Z",
+            "admissibleUntil": "2026-11-05T09:15:00.000Z",
+            "status": "CANCELLED",
+            "dispatchVersion": 2,
+            "code": null,
+            "revision": 3,
+            "bindingGeneration": 1,
+            "scheduleGeneration": 1,
+            "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+            "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+            "members": [
+              {
+                "position": 0,
+                "postId": "fixture-post-p1-m0",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              },
+              {
+                "position": 1,
+                "postId": "fixture-post-p1-m1",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              }
+            ],
+            "deferral": null,
+            "continuation": null,
+            "admittedAt": null,
+            "settledAt": "2026-11-04T12:00:00.000Z",
+            "cancelledByOperationKey": "fixture:cancel-series-after-truncation:0001",
+            "resolution": null,
+            "createdAt": "2026-11-04T09:06:10.000Z",
+            "updatedAt": "2026-11-04T12:00:00.000Z"
+          }
+        ],
+        "kind": "CANCEL",
+        "cancellation": {
+          "scope": "SERIES",
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "cancelledOccurrences": [
+            1
+          ],
+          "series": "ENDED",
+          "generation": "UNCHANGED",
+          "scheduleVersion": "ADVANCED"
+        }
+      }
+    },
+    "deleteAfterTruncationResult": {
+      "parser": "RESULT",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:delete-after-truncation:0001",
+        "payloadHash": "sha256:fd39fd39fd39fd39fd39fd39fd39fd39fd39fd39fd39fd39fd39fd39fd39fd39",
+        "replayed": false,
+        "sequence": 12,
+        "committedAt": "2026-11-04T11:30:00.000Z",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "revision": 3,
+        "scheduleGeneration": 1,
+        "lifecycle": "DELETED",
+        "schedule": {
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "managedPostId": "00000000-0000-4000-8001-000000000001",
+          "scheduleGeneration": 1,
+          "scheduleVersion": 3,
+          "mode": "AT",
+          "status": "SUPERSEDED_BY_DELETE",
+          "revision": 3,
+          "bindingGeneration": 1,
+          "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+          "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+          "codec": "ww-plain-escape-v1",
+          "anchorAt": "2026-11-04T09:00:00.000Z",
+          "intervalDays": 1,
+          "maxOccurrences": 7,
+          "dueAts": [
+            "2026-11-04T09:00:00.000Z",
+            "2026-11-05T09:00:00.000Z",
+            "2026-11-06T09:00:00.000Z",
+            "2026-11-07T09:00:00.000Z",
+            "2026-11-08T09:00:00.000Z",
+            "2026-11-09T09:00:00.000Z",
+            "2026-11-10T09:00:00.000Z"
+          ],
+          "windowEndsAt": "2026-11-10T23:00:00.000Z",
+          "maxLatenessMs": 900000,
+          "operationKey": "fixture:schedule-repeat:0001",
+          "lastOccurrence": 2,
+          "endRequestedOperationKey": "fixture:cancel-remaining-pending:0001",
+          "endRequestedAt": "2026-11-04T10:00:00.000Z",
+          "endedAt": "2026-11-04T11:30:00.000Z",
+          "endedOperationKey": "fixture:delete-after-truncation:0001",
+          "createdAt": "2026-11-04T08:00:00.000Z"
+        },
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000011",
+            "scheduleId": "00000000-0000-4000-8002-000000000001",
+            "managedPostId": "00000000-0000-4000-8001-000000000001",
+            "occurrence": 1,
+            "dueAt": "2026-11-05T09:00:00.000Z",
+            "admissibleUntil": "2026-11-05T09:15:00.000Z",
+            "status": "CANCELLED",
+            "dispatchVersion": 2,
+            "code": null,
+            "revision": 3,
+            "bindingGeneration": 1,
+            "scheduleGeneration": 1,
+            "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+            "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+            "members": [
+              {
+                "position": 0,
+                "postId": "fixture-post-p1-m0",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              },
+              {
+                "position": 1,
+                "postId": "fixture-post-p1-m1",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              }
+            ],
+            "deferral": null,
+            "continuation": null,
+            "admittedAt": null,
+            "settledAt": "2026-11-04T11:30:00.000Z",
+            "cancelledByOperationKey": "fixture:delete-after-truncation:0001",
+            "resolution": null,
+            "createdAt": "2026-11-04T09:06:10.000Z",
+            "updatedAt": "2026-11-04T11:30:00.000Z"
+          }
+        ],
+        "kind": "DELETE",
+        "deletion": {
+          "mode": "RETAINED_SOFT_DELETE",
+          "platformPost": "NOT_DELETED",
+          "wasPublished": true,
+          "retainedPostIds": [
+            "fixture-post-p1-m0",
+            "fixture-post-p1-m1"
+          ],
+          "cancelledOccurrences": [
+            1,
+            2
+          ]
+        }
+      }
+    },
+    "dispatchPendingDeferred": {
+      "parser": "DISPATCH",
+      "body": {
+        "dispatchId": "00000000-0000-4000-8003-000000000010",
+        "scheduleId": "00000000-0000-4000-8002-000000000001",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "occurrence": 0,
+        "dueAt": "2026-11-04T09:00:00.000Z",
+        "admissibleUntil": "2026-11-04T09:15:00.000Z",
+        "status": "PENDING",
+        "dispatchVersion": 1,
+        "code": null,
+        "revision": 3,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 1,
+        "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+        "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+        "members": [
+          {
+            "position": 0,
+            "postId": "fixture-post-p1-m0",
+            "status": "WAITING",
+            "code": null,
+            "release": null
+          },
+          {
+            "position": 1,
+            "postId": "fixture-post-p1-m1",
+            "status": "WAITING",
+            "code": null,
+            "release": null
+          }
+        ],
+        "deferral": {
+          "code": "BUDGET_EXHAUSTED",
+          "count": 1,
+          "firstDeferredAt": "2026-11-04T09:00:00.000Z",
+          "nextAttemptAt": "2026-11-04T09:01:00.000Z"
+        },
+        "continuation": null,
+        "admittedAt": null,
+        "settledAt": null,
+        "cancelledByOperationKey": null,
+        "resolution": null,
+        "createdAt": "2026-11-04T08:00:00.000Z",
+        "updatedAt": "2026-11-04T09:00:00.000Z"
+      }
+    },
+    "dispatchAdmittedInCall": {
+      "parser": "DISPATCH",
+      "body": {
+        "dispatchId": "00000000-0000-4000-8003-000000000010",
+        "scheduleId": "00000000-0000-4000-8002-000000000001",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "occurrence": 0,
+        "dueAt": "2026-11-04T09:00:00.000Z",
+        "admissibleUntil": "2026-11-04T09:15:00.000Z",
+        "status": "ADMITTED",
+        "dispatchVersion": 2,
+        "code": null,
+        "revision": 3,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 1,
+        "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+        "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+        "members": [
+          {
+            "position": 0,
+            "postId": "fixture-post-p1-m0",
+            "status": "DISPATCHING",
+            "code": null,
+            "release": null
+          },
+          {
+            "position": 1,
+            "postId": "fixture-post-p1-m1",
+            "status": "WAITING",
+            "code": null,
+            "release": null
+          }
+        ],
+        "deferral": null,
+        "continuation": {
+          "kind": "IN_CALL",
+          "member": 0,
+          "step": "POST",
+          "callId": "00000000-0000-4000-8004-000000000001",
+          "attempt": 1,
+          "reservedUnits": 4,
+          "admittedAt": "2026-11-04T09:00:05.000Z",
+          "leaseExpiresAt": "2026-11-04T09:02:35.000Z"
+        },
+        "admittedAt": "2026-11-04T09:00:05.000Z",
+        "settledAt": null,
+        "cancelledByOperationKey": null,
+        "resolution": null,
+        "createdAt": "2026-11-04T08:00:00.000Z",
+        "updatedAt": "2026-11-04T09:00:05.000Z"
+      }
+    },
+    "dispatchAdmittedProviderPending": {
+      "parser": "DISPATCH",
+      "body": {
+        "dispatchId": "00000000-0000-4000-8003-000000000010",
+        "scheduleId": "00000000-0000-4000-8002-000000000001",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "occurrence": 0,
+        "dueAt": "2026-11-04T09:00:00.000Z",
+        "admissibleUntil": "2026-11-04T09:15:00.000Z",
+        "status": "ADMITTED",
+        "dispatchVersion": 3,
+        "code": null,
+        "revision": 3,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 1,
+        "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+        "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+        "members": [
+          {
+            "position": 0,
+            "postId": "fixture-post-p1-m0",
+            "status": "PENDING_PROVIDER",
+            "code": null,
+            "release": null
+          },
+          {
+            "position": 1,
+            "postId": "fixture-post-p1-m1",
+            "status": "WAITING",
+            "code": null,
+            "release": null
+          }
+        ],
+        "deferral": {
+          "code": "BUDGET_EXHAUSTED",
+          "count": 1,
+          "firstDeferredAt": "2026-11-04T09:02:05.000Z",
+          "nextAttemptAt": "2026-11-04T09:03:05.000Z"
+        },
+        "continuation": {
+          "kind": "PROVIDER_PENDING",
+          "member": 0,
+          "step": "POST",
+          "callId": "00000000-0000-4000-8004-000000000001",
+          "pendingSince": "2026-11-04T09:00:20.000Z",
+          "pollCount": 2,
+          "lastPolledAt": "2026-11-04T09:01:05.000Z",
+          "nextPollAt": "2026-11-04T09:03:05.000Z",
+          "pollDeadlineAt": "2026-11-04T09:30:20.000Z"
+        },
+        "admittedAt": "2026-11-04T09:00:05.000Z",
+        "settledAt": null,
+        "cancelledByOperationKey": null,
+        "resolution": null,
+        "createdAt": "2026-11-04T08:00:00.000Z",
+        "updatedAt": "2026-11-04T09:00:20.000Z"
+      }
+    },
+    "dispatchPublished": {
+      "parser": "DISPATCH",
+      "body": {
+        "dispatchId": "00000000-0000-4000-8003-000000000010",
+        "scheduleId": "00000000-0000-4000-8002-000000000001",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "occurrence": 0,
+        "dueAt": "2026-11-04T09:00:00.000Z",
+        "admissibleUntil": "2026-11-04T09:15:00.000Z",
+        "status": "PUBLISHED",
+        "dispatchVersion": 6,
+        "code": null,
+        "revision": 3,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 1,
+        "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+        "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+        "members": [
+          {
+            "position": 0,
+            "postId": "fixture-post-p1-m0",
+            "status": "PUBLISHED",
+            "code": null,
+            "release": {
+              "releaseId": "fixture-release-1001",
+              "releaseURL": "https://www.example.com/fixture/release/1001",
+              "source": "PROVIDER_RESPONSE"
+            }
+          },
+          {
+            "position": 1,
+            "postId": "fixture-post-p1-m1",
+            "status": "PUBLISHED",
+            "code": null,
+            "release": {
+              "releaseId": "fixture-release-1002",
+              "releaseURL": null,
+              "source": "PROVIDER_RESPONSE"
+            }
+          }
+        ],
+        "deferral": null,
+        "continuation": null,
+        "admittedAt": "2026-11-04T09:00:05.000Z",
+        "settledAt": "2026-11-04T09:06:10.000Z",
+        "cancelledByOperationKey": null,
+        "resolution": null,
+        "createdAt": "2026-11-04T08:00:00.000Z",
+        "updatedAt": "2026-11-04T09:06:10.000Z"
+      }
+    },
+    "dispatchUnknown": {
+      "parser": "DISPATCH",
+      "body": {
+        "dispatchId": "00000000-0000-4000-8003-000000000020",
+        "scheduleId": "00000000-0000-4000-8002-000000000002",
+        "managedPostId": "00000000-0000-4000-8001-000000000002",
+        "occurrence": 0,
+        "dueAt": "2026-11-04T10:00:00.000Z",
+        "admissibleUntil": "2026-11-04T10:05:00.000Z",
+        "status": "UNKNOWN",
+        "dispatchVersion": 3,
+        "code": "OUTCOME_UNKNOWN",
+        "revision": 1,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 1,
+        "releaseHash": "sha256:fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03",
+        "contentSha256": "fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04",
+        "members": [
+          {
+            "position": 0,
+            "postId": "fixture-post-p2-m0",
+            "status": "UNKNOWN",
+            "code": "OUTCOME_UNKNOWN",
+            "release": null
+          }
+        ],
+        "deferral": null,
+        "continuation": null,
+        "admittedAt": "2026-11-04T10:00:01.000Z",
+        "settledAt": "2026-11-04T10:02:31.000Z",
+        "cancelledByOperationKey": null,
+        "resolution": null,
+        "createdAt": "2026-11-04T10:00:00.000Z",
+        "updatedAt": "2026-11-04T10:02:31.000Z"
+      }
+    },
+    "dispatchResolvedPublished": {
+      "parser": "DISPATCH",
+      "body": {
+        "dispatchId": "00000000-0000-4000-8003-000000000020",
+        "scheduleId": "00000000-0000-4000-8002-000000000002",
+        "managedPostId": "00000000-0000-4000-8001-000000000002",
+        "occurrence": 0,
+        "dueAt": "2026-11-04T10:00:00.000Z",
+        "admissibleUntil": "2026-11-04T10:05:00.000Z",
+        "status": "RESOLVED_PUBLISHED",
+        "dispatchVersion": 4,
+        "code": "OUTCOME_UNKNOWN",
+        "revision": 1,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 1,
+        "releaseHash": "sha256:fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03fd03",
+        "contentSha256": "fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04fd04",
+        "members": [
+          {
+            "position": 0,
+            "postId": "fixture-post-p2-m0",
+            "status": "PUBLISHED",
+            "code": null,
+            "release": {
+              "releaseId": null,
+              "releaseURL": "https://www.example.com/fixture/release/0001",
+              "source": "HUMAN_RESOLUTION"
+            }
+          }
+        ],
+        "deferral": null,
+        "continuation": null,
+        "admittedAt": "2026-11-04T10:00:01.000Z",
+        "settledAt": "2026-11-04T10:02:31.000Z",
+        "cancelledByOperationKey": null,
+        "resolution": {
+          "resolution": "RESOLVED_PUBLISHED",
+          "previousStatus": "UNKNOWN",
+          "operationKey": "fixture:resolve-unknown:0001",
+          "resolvedAt": "2026-11-04T11:05:00.000Z",
+          "evidence": {
+            "source": "HUMAN_OBSERVATION",
+            "observedAt": "2026-11-04T11:00:00.000Z",
+            "note": "Synthetic fixture: the post was seen on the profile."
+          },
+          "members": [
+            {
+              "position": 0,
+              "postId": "fixture-post-p2-m0",
+              "expectedStatus": "UNKNOWN",
+              "outcome": "PUBLISHED",
+              "releaseURL": "https://www.example.com/fixture/release/0001",
+              "releaseId": null
+            }
+          ],
+          "resend": "NEVER"
+        },
+        "createdAt": "2026-11-04T10:00:00.000Z",
+        "updatedAt": "2026-11-04T11:05:00.000Z"
+      }
+    },
+    "dispatchPartial": {
+      "parser": "DISPATCH",
+      "body": {
+        "dispatchId": "00000000-0000-4000-8003-000000000040",
+        "scheduleId": "00000000-0000-4000-8002-000000000004",
+        "managedPostId": "00000000-0000-4000-8001-000000000004",
+        "occurrence": 0,
+        "dueAt": "2026-11-04T12:00:00.000Z",
+        "admissibleUntil": "2026-11-04T12:15:00.000Z",
+        "status": "PARTIAL",
+        "dispatchVersion": 5,
+        "code": "OUTCOME_UNKNOWN",
+        "revision": 2,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 1,
+        "releaseHash": "sha256:fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05",
+        "contentSha256": "fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06",
+        "members": [
+          {
+            "position": 0,
+            "postId": "fixture-post-p4-m0",
+            "status": "PUBLISHED",
+            "code": null,
+            "release": {
+              "releaseId": "fixture-release-4001",
+              "releaseURL": null,
+              "source": "PROVIDER_RESPONSE"
+            }
+          },
+          {
+            "position": 1,
+            "postId": "fixture-post-p4-m1",
+            "status": "UNKNOWN",
+            "code": "OUTCOME_UNKNOWN",
+            "release": null
+          }
+        ],
+        "deferral": null,
+        "continuation": null,
+        "admittedAt": "2026-11-04T12:00:03.000Z",
+        "settledAt": "2026-11-04T12:09:00.000Z",
+        "cancelledByOperationKey": null,
+        "resolution": null,
+        "createdAt": "2026-11-04T11:00:00.000Z",
+        "updatedAt": "2026-11-04T12:09:00.000Z"
+      }
+    },
+    "dispatchResolvedAbandoned": {
+      "parser": "DISPATCH",
+      "body": {
+        "dispatchId": "00000000-0000-4000-8003-000000000040",
+        "scheduleId": "00000000-0000-4000-8002-000000000004",
+        "managedPostId": "00000000-0000-4000-8001-000000000004",
+        "occurrence": 0,
+        "dueAt": "2026-11-04T12:00:00.000Z",
+        "admissibleUntil": "2026-11-04T12:15:00.000Z",
+        "status": "RESOLVED_ABANDONED",
+        "dispatchVersion": 6,
+        "code": "OUTCOME_UNKNOWN",
+        "revision": 2,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 1,
+        "releaseHash": "sha256:fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05fd05",
+        "contentSha256": "fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06fd06",
+        "members": [
+          {
+            "position": 0,
+            "postId": "fixture-post-p4-m0",
+            "status": "PUBLISHED",
+            "code": null,
+            "release": {
+              "releaseId": "fixture-release-4001",
+              "releaseURL": null,
+              "source": "PROVIDER_RESPONSE"
+            }
+          },
+          {
+            "position": 1,
+            "postId": "fixture-post-p4-m1",
+            "status": "RESOLVED_NOT_PUBLISHED",
+            "code": null,
+            "release": null
+          }
+        ],
+        "deferral": null,
+        "continuation": null,
+        "admittedAt": "2026-11-04T12:00:03.000Z",
+        "settledAt": "2026-11-04T12:09:00.000Z",
+        "cancelledByOperationKey": null,
+        "resolution": {
+          "resolution": "RESOLVED_ABANDONED",
+          "previousStatus": "PARTIAL",
+          "operationKey": "fixture:resolve-partial:0001",
+          "resolvedAt": "2026-11-04T13:00:00.000Z",
+          "evidence": {
+            "source": "HUMAN_OBSERVATION",
+            "observedAt": "2026-11-04T12:45:00.000Z",
+            "note": "Synthetic fixture: the comment is not under the post."
+          },
+          "members": [
+            {
+              "position": 0,
+              "postId": "fixture-post-p4-m0",
+              "expectedStatus": "PUBLISHED",
+              "outcome": null,
+              "releaseURL": null,
+              "releaseId": null
+            },
+            {
+              "position": 1,
+              "postId": "fixture-post-p4-m1",
+              "expectedStatus": "UNKNOWN",
+              "outcome": "NOT_PUBLISHED",
+              "releaseURL": null,
+              "releaseId": null
+            }
+          ],
+          "resend": "NEVER"
+        },
+        "createdAt": "2026-11-04T11:00:00.000Z",
+        "updatedAt": "2026-11-04T13:00:00.000Z"
+      }
+    },
+    "lifecycleEnding": {
+      "parser": "LIFECYCLE",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "asOfSequence": 7,
+        "revision": 3,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 1,
+        "lifecycle": "DISPATCHING",
+        "deletion": null,
+        "schedule": {
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "managedPostId": "00000000-0000-4000-8001-000000000001",
+          "scheduleGeneration": 1,
+          "scheduleVersion": 2,
+          "mode": "AT",
+          "status": "ENDING",
+          "revision": 3,
+          "bindingGeneration": 1,
+          "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+          "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+          "codec": "ww-plain-escape-v1",
+          "anchorAt": "2026-11-04T09:00:00.000Z",
+          "intervalDays": 1,
+          "maxOccurrences": 7,
+          "dueAts": [
+            "2026-11-04T09:00:00.000Z",
+            "2026-11-05T09:00:00.000Z",
+            "2026-11-06T09:00:00.000Z",
+            "2026-11-07T09:00:00.000Z",
+            "2026-11-08T09:00:00.000Z",
+            "2026-11-09T09:00:00.000Z",
+            "2026-11-10T09:00:00.000Z"
+          ],
+          "windowEndsAt": "2026-11-10T23:00:00.000Z",
+          "maxLatenessMs": 900000,
+          "operationKey": "fixture:schedule-repeat:0001",
+          "lastOccurrence": 0,
+          "endRequestedOperationKey": "fixture:cancel-remaining:0001",
+          "endRequestedAt": "2026-11-04T09:01:00.000Z",
+          "endedAt": null,
+          "endedOperationKey": null,
+          "createdAt": "2026-11-04T08:00:00.000Z"
+        },
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000010",
+            "scheduleId": "00000000-0000-4000-8002-000000000001",
+            "managedPostId": "00000000-0000-4000-8001-000000000001",
+            "occurrence": 0,
+            "dueAt": "2026-11-04T09:00:00.000Z",
+            "admissibleUntil": "2026-11-04T09:15:00.000Z",
+            "status": "ADMITTED",
+            "dispatchVersion": 2,
+            "code": null,
+            "revision": 3,
+            "bindingGeneration": 1,
+            "scheduleGeneration": 1,
+            "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+            "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+            "members": [
+              {
+                "position": 0,
+                "postId": "fixture-post-p1-m0",
+                "status": "DISPATCHING",
+                "code": null,
+                "release": null
+              },
+              {
+                "position": 1,
+                "postId": "fixture-post-p1-m1",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              }
+            ],
+            "deferral": null,
+            "continuation": {
+              "kind": "IN_CALL",
+              "member": 0,
+              "step": "POST",
+              "callId": "00000000-0000-4000-8004-000000000001",
+              "attempt": 1,
+              "reservedUnits": 4,
+              "admittedAt": "2026-11-04T09:00:05.000Z",
+              "leaseExpiresAt": "2026-11-04T09:02:35.000Z"
+            },
+            "admittedAt": "2026-11-04T09:00:05.000Z",
+            "settledAt": null,
+            "cancelledByOperationKey": null,
+            "resolution": null,
+            "createdAt": "2026-11-04T08:00:00.000Z",
+            "updatedAt": "2026-11-04T09:00:05.000Z"
+          }
+        ],
+        "unresolvedDispatchIds": [],
+        "scheduleCount": 1
+      }
+    },
+    "lifecycleTombstone": {
+      "parser": "LIFECYCLE",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "asOfSequence": 2,
+        "revision": 3,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 1,
+        "lifecycle": "DELETED",
+        "deletion": {
+          "mode": "RETAINED_SOFT_DELETE",
+          "platformPost": "NOT_DELETED",
+          "deletedAt": "2026-11-04T08:30:00.000Z",
+          "operationKey": "fixture:delete-scheduled:0001"
+        },
+        "schedule": {
+          "scheduleId": "00000000-0000-4000-8002-000000000001",
+          "managedPostId": "00000000-0000-4000-8001-000000000001",
+          "scheduleGeneration": 1,
+          "scheduleVersion": 2,
+          "mode": "AT",
+          "status": "SUPERSEDED_BY_DELETE",
+          "revision": 3,
+          "bindingGeneration": 1,
+          "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+          "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+          "codec": "ww-plain-escape-v1",
+          "anchorAt": "2026-11-04T09:00:00.000Z",
+          "intervalDays": 1,
+          "maxOccurrences": 7,
+          "dueAts": [
+            "2026-11-04T09:00:00.000Z",
+            "2026-11-05T09:00:00.000Z",
+            "2026-11-06T09:00:00.000Z",
+            "2026-11-07T09:00:00.000Z",
+            "2026-11-08T09:00:00.000Z",
+            "2026-11-09T09:00:00.000Z",
+            "2026-11-10T09:00:00.000Z"
+          ],
+          "windowEndsAt": "2026-11-10T23:00:00.000Z",
+          "maxLatenessMs": 900000,
+          "operationKey": "fixture:schedule-repeat:0001",
+          "lastOccurrence": 6,
+          "endRequestedOperationKey": null,
+          "endRequestedAt": null,
+          "endedAt": "2026-11-04T08:30:00.000Z",
+          "endedOperationKey": "fixture:delete-scheduled:0001",
+          "createdAt": "2026-11-04T08:00:00.000Z"
+        },
+        "dispatches": [
+          {
+            "dispatchId": "00000000-0000-4000-8003-000000000010",
+            "scheduleId": "00000000-0000-4000-8002-000000000001",
+            "managedPostId": "00000000-0000-4000-8001-000000000001",
+            "occurrence": 0,
+            "dueAt": "2026-11-04T09:00:00.000Z",
+            "admissibleUntil": "2026-11-04T09:15:00.000Z",
+            "status": "CANCELLED",
+            "dispatchVersion": 2,
+            "code": null,
+            "revision": 3,
+            "bindingGeneration": 1,
+            "scheduleGeneration": 1,
+            "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+            "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+            "members": [
+              {
+                "position": 0,
+                "postId": "fixture-post-p1-m0",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              },
+              {
+                "position": 1,
+                "postId": "fixture-post-p1-m1",
+                "status": "WAITING",
+                "code": null,
+                "release": null
+              }
+            ],
+            "deferral": null,
+            "continuation": null,
+            "admittedAt": null,
+            "settledAt": "2026-11-04T08:30:00.000Z",
+            "cancelledByOperationKey": "fixture:delete-scheduled:0001",
+            "resolution": null,
+            "createdAt": "2026-11-04T08:00:00.000Z",
+            "updatedAt": "2026-11-04T08:30:00.000Z"
+          }
+        ],
+        "unresolvedDispatchIds": [],
+        "scheduleCount": 1
+      }
+    },
+    "lifecycleTombstoneDraft": {
+      "parser": "LIFECYCLE",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "managedPostId": "00000000-0000-4000-8001-000000000003",
+        "asOfSequence": 3,
+        "revision": 1,
+        "bindingGeneration": 1,
+        "scheduleGeneration": 0,
+        "lifecycle": "DELETED",
+        "deletion": {
+          "mode": "RETAINED_SOFT_DELETE",
+          "platformPost": "NOT_DELETED",
+          "deletedAt": "2026-11-04T08:40:00.000Z",
+          "operationKey": "fixture:delete-draft:0001"
+        },
+        "schedule": null,
+        "dispatches": [],
+        "unresolvedDispatchIds": [],
+        "scheduleCount": 0
+      }
+    },
+    "lookupAbsent": {
+      "parser": "OPERATION",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:schedule-once:0001",
+        "status": "ABSENT",
+        "asOfSequence": 4
+      }
+    },
+    "lookupCommitted": {
+      "parser": "OPERATION",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "operationKey": "fixture:schedule-repeat:0001",
+        "status": "COMMITTED",
+        "asOfSequence": 1,
+        "kind": "SCHEDULE",
+        "payloadHash": "sha256:fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31",
+        "managedPostId": "00000000-0000-4000-8001-000000000001",
+        "sequence": 1,
+        "committedAt": "2026-11-04T08:00:00.000Z",
+        "currentScheduleGeneration": 1,
+        "currentLifecycle": "SCHEDULED",
+        "ack": "CURRENT",
+        "result": {
+          "version": "ww.managed-lifecycle.v1",
+          "operationKey": "fixture:schedule-repeat:0001",
+          "payloadHash": "sha256:fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31fd31",
+          "replayed": false,
+          "sequence": 1,
+          "committedAt": "2026-11-04T08:00:00.000Z",
+          "managedPostId": "00000000-0000-4000-8001-000000000001",
+          "revision": 3,
+          "scheduleGeneration": 1,
+          "lifecycle": "SCHEDULED",
+          "schedule": {
+            "scheduleId": "00000000-0000-4000-8002-000000000001",
+            "managedPostId": "00000000-0000-4000-8001-000000000001",
+            "scheduleGeneration": 1,
+            "scheduleVersion": 1,
+            "mode": "AT",
+            "status": "ACTIVE",
+            "revision": 3,
+            "bindingGeneration": 1,
+            "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+            "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+            "codec": "ww-plain-escape-v1",
+            "anchorAt": "2026-11-04T09:00:00.000Z",
+            "intervalDays": 1,
+            "maxOccurrences": 7,
+            "dueAts": [
+              "2026-11-04T09:00:00.000Z",
+              "2026-11-05T09:00:00.000Z",
+              "2026-11-06T09:00:00.000Z",
+              "2026-11-07T09:00:00.000Z",
+              "2026-11-08T09:00:00.000Z",
+              "2026-11-09T09:00:00.000Z",
+              "2026-11-10T09:00:00.000Z"
+            ],
+            "windowEndsAt": "2026-11-10T23:00:00.000Z",
+            "maxLatenessMs": 900000,
+            "operationKey": "fixture:schedule-repeat:0001",
+            "lastOccurrence": 6,
+            "endRequestedOperationKey": null,
+            "endRequestedAt": null,
+            "endedAt": null,
+            "endedOperationKey": null,
+            "createdAt": "2026-11-04T08:00:00.000Z"
+          },
+          "dispatches": [
+            {
+              "dispatchId": "00000000-0000-4000-8003-000000000010",
+              "scheduleId": "00000000-0000-4000-8002-000000000001",
+              "managedPostId": "00000000-0000-4000-8001-000000000001",
+              "occurrence": 0,
+              "dueAt": "2026-11-04T09:00:00.000Z",
+              "admissibleUntil": "2026-11-04T09:15:00.000Z",
+              "status": "PENDING",
+              "dispatchVersion": 1,
+              "code": null,
+              "revision": 3,
+              "bindingGeneration": 1,
+              "scheduleGeneration": 1,
+              "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+              "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+              "members": [
+                {
+                  "position": 0,
+                  "postId": "fixture-post-p1-m0",
+                  "status": "WAITING",
+                  "code": null,
+                  "release": null
+                },
+                {
+                  "position": 1,
+                  "postId": "fixture-post-p1-m1",
+                  "status": "WAITING",
+                  "code": null,
+                  "release": null
+                }
+              ],
+              "deferral": null,
+              "continuation": null,
+              "admittedAt": null,
+              "settledAt": null,
+              "cancelledByOperationKey": null,
+              "resolution": null,
+              "createdAt": "2026-11-04T08:00:00.000Z",
+              "updatedAt": "2026-11-04T08:00:00.000Z"
+            }
+          ],
+          "kind": "SCHEDULE"
+        }
+      }
+    },
+    "errorKindMismatch": {
+      "parser": "ERROR",
+      "httpStatus": 409,
+      "body": {
+        "code": "OPERATION_KEY_KIND_MISMATCH",
+        "msg": "The operation key belongs to the other kind of managed operation"
+      }
+    },
+    "eventsPage": {
+      "parser": "EVENTS",
+      "body": {
+        "version": "ww.managed-lifecycle.v1",
+        "afterSequence": 0,
+        "headSequence": 4,
+        "nextSequence": 3,
+        "events": [
+          {
+            "sequence": 1,
+            "kind": "POST_SCHEDULED",
+            "managedPostId": "00000000-0000-4000-8001-000000000001",
+            "scheduleId": "00000000-0000-4000-8002-000000000001",
+            "dispatchId": "00000000-0000-4000-8003-000000000010",
+            "operationKey": "fixture:schedule-repeat:0001",
+            "at": "2026-11-04T08:00:00.000Z",
+            "projection": {
+              "version": "ww.managed-lifecycle.v1",
+              "managedPostId": "00000000-0000-4000-8001-000000000001",
+              "asOfSequence": 1,
+              "revision": 3,
+              "bindingGeneration": 1,
+              "scheduleGeneration": 1,
+              "lifecycle": "SCHEDULED",
+              "deletion": null,
+              "schedule": {
+                "scheduleId": "00000000-0000-4000-8002-000000000001",
+                "managedPostId": "00000000-0000-4000-8001-000000000001",
+                "scheduleGeneration": 1,
+                "scheduleVersion": 1,
+                "mode": "AT",
+                "status": "ACTIVE",
+                "revision": 3,
+                "bindingGeneration": 1,
+                "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+                "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+                "codec": "ww-plain-escape-v1",
+                "anchorAt": "2026-11-04T09:00:00.000Z",
+                "intervalDays": 1,
+                "maxOccurrences": 7,
+                "dueAts": [
+                  "2026-11-04T09:00:00.000Z",
+                  "2026-11-05T09:00:00.000Z",
+                  "2026-11-06T09:00:00.000Z",
+                  "2026-11-07T09:00:00.000Z",
+                  "2026-11-08T09:00:00.000Z",
+                  "2026-11-09T09:00:00.000Z",
+                  "2026-11-10T09:00:00.000Z"
+                ],
+                "windowEndsAt": "2026-11-10T23:00:00.000Z",
+                "maxLatenessMs": 900000,
+                "operationKey": "fixture:schedule-repeat:0001",
+                "lastOccurrence": 6,
+                "endRequestedOperationKey": null,
+                "endRequestedAt": null,
+                "endedAt": null,
+                "endedOperationKey": null,
+                "createdAt": "2026-11-04T08:00:00.000Z"
+              },
+              "dispatches": [
+                {
+                  "dispatchId": "00000000-0000-4000-8003-000000000010",
+                  "scheduleId": "00000000-0000-4000-8002-000000000001",
+                  "managedPostId": "00000000-0000-4000-8001-000000000001",
+                  "occurrence": 0,
+                  "dueAt": "2026-11-04T09:00:00.000Z",
+                  "admissibleUntil": "2026-11-04T09:15:00.000Z",
+                  "status": "PENDING",
+                  "dispatchVersion": 1,
+                  "code": null,
+                  "revision": 3,
+                  "bindingGeneration": 1,
+                  "scheduleGeneration": 1,
+                  "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+                  "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+                  "members": [
+                    {
+                      "position": 0,
+                      "postId": "fixture-post-p1-m0",
+                      "status": "WAITING",
+                      "code": null,
+                      "release": null
+                    },
+                    {
+                      "position": 1,
+                      "postId": "fixture-post-p1-m1",
+                      "status": "WAITING",
+                      "code": null,
+                      "release": null
+                    }
+                  ],
+                  "deferral": null,
+                  "continuation": null,
+                  "admittedAt": null,
+                  "settledAt": null,
+                  "cancelledByOperationKey": null,
+                  "resolution": null,
+                  "createdAt": "2026-11-04T08:00:00.000Z",
+                  "updatedAt": "2026-11-04T08:00:00.000Z"
+                }
+              ],
+              "unresolvedDispatchIds": [],
+              "scheduleCount": 1
+            }
+          },
+          {
+            "sequence": 2,
+            "kind": "POST_DELETED",
+            "managedPostId": "00000000-0000-4000-8001-000000000001",
+            "scheduleId": "00000000-0000-4000-8002-000000000001",
+            "dispatchId": null,
+            "operationKey": "fixture:delete-scheduled:0001",
+            "at": "2026-11-04T08:30:00.000Z",
+            "projection": {
+              "version": "ww.managed-lifecycle.v1",
+              "managedPostId": "00000000-0000-4000-8001-000000000001",
+              "asOfSequence": 2,
+              "revision": 3,
+              "bindingGeneration": 1,
+              "scheduleGeneration": 1,
+              "lifecycle": "DELETED",
+              "deletion": {
+                "mode": "RETAINED_SOFT_DELETE",
+                "platformPost": "NOT_DELETED",
+                "deletedAt": "2026-11-04T08:30:00.000Z",
+                "operationKey": "fixture:delete-scheduled:0001"
+              },
+              "schedule": {
+                "scheduleId": "00000000-0000-4000-8002-000000000001",
+                "managedPostId": "00000000-0000-4000-8001-000000000001",
+                "scheduleGeneration": 1,
+                "scheduleVersion": 2,
+                "mode": "AT",
+                "status": "SUPERSEDED_BY_DELETE",
+                "revision": 3,
+                "bindingGeneration": 1,
+                "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+                "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+                "codec": "ww-plain-escape-v1",
+                "anchorAt": "2026-11-04T09:00:00.000Z",
+                "intervalDays": 1,
+                "maxOccurrences": 7,
+                "dueAts": [
+                  "2026-11-04T09:00:00.000Z",
+                  "2026-11-05T09:00:00.000Z",
+                  "2026-11-06T09:00:00.000Z",
+                  "2026-11-07T09:00:00.000Z",
+                  "2026-11-08T09:00:00.000Z",
+                  "2026-11-09T09:00:00.000Z",
+                  "2026-11-10T09:00:00.000Z"
+                ],
+                "windowEndsAt": "2026-11-10T23:00:00.000Z",
+                "maxLatenessMs": 900000,
+                "operationKey": "fixture:schedule-repeat:0001",
+                "lastOccurrence": 6,
+                "endRequestedOperationKey": null,
+                "endRequestedAt": null,
+                "endedAt": "2026-11-04T08:30:00.000Z",
+                "endedOperationKey": "fixture:delete-scheduled:0001",
+                "createdAt": "2026-11-04T08:00:00.000Z"
+              },
+              "dispatches": [
+                {
+                  "dispatchId": "00000000-0000-4000-8003-000000000010",
+                  "scheduleId": "00000000-0000-4000-8002-000000000001",
+                  "managedPostId": "00000000-0000-4000-8001-000000000001",
+                  "occurrence": 0,
+                  "dueAt": "2026-11-04T09:00:00.000Z",
+                  "admissibleUntil": "2026-11-04T09:15:00.000Z",
+                  "status": "CANCELLED",
+                  "dispatchVersion": 2,
+                  "code": null,
+                  "revision": 3,
+                  "bindingGeneration": 1,
+                  "scheduleGeneration": 1,
+                  "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+                  "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+                  "members": [
+                    {
+                      "position": 0,
+                      "postId": "fixture-post-p1-m0",
+                      "status": "WAITING",
+                      "code": null,
+                      "release": null
+                    },
+                    {
+                      "position": 1,
+                      "postId": "fixture-post-p1-m1",
+                      "status": "WAITING",
+                      "code": null,
+                      "release": null
+                    }
+                  ],
+                  "deferral": null,
+                  "continuation": null,
+                  "admittedAt": null,
+                  "settledAt": "2026-11-04T08:30:00.000Z",
+                  "cancelledByOperationKey": "fixture:delete-scheduled:0001",
+                  "resolution": null,
+                  "createdAt": "2026-11-04T08:00:00.000Z",
+                  "updatedAt": "2026-11-04T08:30:00.000Z"
+                }
+              ],
+              "unresolvedDispatchIds": [],
+              "scheduleCount": 1
+            }
+          },
+          {
+            "sequence": 3,
+            "kind": "POST_DELETED",
+            "managedPostId": "00000000-0000-4000-8001-000000000003",
+            "scheduleId": null,
+            "dispatchId": null,
+            "operationKey": "fixture:delete-draft:0001",
+            "at": "2026-11-04T08:40:00.000Z",
+            "projection": {
+              "version": "ww.managed-lifecycle.v1",
+              "managedPostId": "00000000-0000-4000-8001-000000000003",
+              "asOfSequence": 3,
+              "revision": 1,
+              "bindingGeneration": 1,
+              "scheduleGeneration": 0,
+              "lifecycle": "DELETED",
+              "deletion": {
+                "mode": "RETAINED_SOFT_DELETE",
+                "platformPost": "NOT_DELETED",
+                "deletedAt": "2026-11-04T08:40:00.000Z",
+                "operationKey": "fixture:delete-draft:0001"
+              },
+              "schedule": null,
+              "dispatches": [],
+              "unresolvedDispatchIds": [],
+              "scheduleCount": 0
+            }
+          }
+        ],
+        "hasMore": true
+      }
+    }
+  },
+  "hashInputs": {
+    "scheduleRepeatPayload": {
+      "kind": "SCHEDULE",
+      "managedPostId": "00000000-0000-4000-8001-000000000001",
+      "expectedRevision": 3,
+      "expectedBindingGeneration": 1,
+      "expectedScheduleGeneration": 0,
+      "releaseHash": "sha256:fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01fd01",
+      "contentSha256": "fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02fd02",
+      "codec": "ww-plain-escape-v1",
+      "maxLatenessMs": 900000,
+      "publishAt": "2026-11-04T09:00:00.000Z",
+      "repeat": {
+        "intervalDays": 1,
+        "maxOccurrences": 7,
+        "dueAts": [
+          "2026-11-04T09:00:00.000Z",
+          "2026-11-05T09:00:00.000Z",
+          "2026-11-06T09:00:00.000Z",
+          "2026-11-07T09:00:00.000Z",
+          "2026-11-08T09:00:00.000Z",
+          "2026-11-09T09:00:00.000Z",
+          "2026-11-10T09:00:00.000Z"
+        ]
+      }
+    },
+    "cancelRemainingAffected": {
+      "v": "ww-affected-scope-v1",
+      "scope": "REMAINING",
+      "scheduleId": "00000000-0000-4000-8002-000000000001",
+      "scheduleVersion": 1,
+      "affected": [
+        {
+          "state": "NOT_MATERIALIZED",
+          "occurrence": 1,
+          "dueAt": "2026-11-05T09:00:00.000Z"
+        },
+        {
+          "state": "NOT_MATERIALIZED",
+          "occurrence": 2,
+          "dueAt": "2026-11-06T09:00:00.000Z"
+        },
+        {
+          "state": "NOT_MATERIALIZED",
+          "occurrence": 3,
+          "dueAt": "2026-11-07T09:00:00.000Z"
+        },
+        {
+          "state": "NOT_MATERIALIZED",
+          "occurrence": 4,
+          "dueAt": "2026-11-08T09:00:00.000Z"
+        },
+        {
+          "state": "NOT_MATERIALIZED",
+          "occurrence": 5,
+          "dueAt": "2026-11-09T09:00:00.000Z"
+        },
+        {
+          "state": "NOT_MATERIALIZED",
+          "occurrence": 6,
+          "dueAt": "2026-11-10T09:00:00.000Z"
+        }
+      ],
+      "inFlight": {
+        "occurrence": 0,
+        "dispatchId": "00000000-0000-4000-8003-000000000010",
+        "expectedStatus": "ADMITTED",
+        "expectedDispatchVersion": 2
+      }
+    },
+    "releasePreview": {
+      "v": "ww-release-hash-v1",
+      "managedPostId": "00000000-0000-4000-8001-000000000001",
+      "revision": 3,
+      "integrationId": "fixture-integration-0001",
+      "providerIdentifier": "instagram-standalone",
+      "identityFingerprint": "sha256:fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21fd21",
+      "codec": "ww-plain-escape-v1",
+      "settingsHash": "sha256:fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22fd22",
+      "members": [
+        {
+          "position": 0,
+          "delay": 0,
+          "text": "Say \"hi\" & 'bye' <3\n\tTab NBSP, literal &lt;p&gt; and &nbsp; stay text 🎉 é",
+          "media": [
+            {
+              "position": 0,
+              "mediaId": "fixture-media-0001",
+              "evidenceId": "fixture-evidence-0001",
+              "sha256": "fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1fda1",
+              "byteLength": 48213,
+              "mimeType": "image/jpeg",
+              "alt": "Synthetic fixture image",
+              "thumbnail": null,
+              "thumbnailTimestampMs": null
+            }
+          ]
+        },
+        {
+          "position": 1,
+          "delay": 5,
+          "text": "Comment with a literal &amp; entity",
+          "media": []
+        }
+      ]
+    },
+    "releasePreviewParagraph": {
+      "v": "ww-release-hash-v1",
+      "managedPostId": "00000000-0000-4000-8001-000000000002",
+      "revision": 1,
+      "integrationId": "fixture-integration-0001",
+      "providerIdentifier": "instagram-standalone",
+      "identityFingerprint": "sha256:fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23fd23",
+      "codec": "ww-plain-paragraph-escape-v1",
+      "settingsHash": "sha256:fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24fd24",
+      "members": [
+        {
+          "position": 0,
+          "delay": 0,
+          "text": "Quote \"x\" & tab\there 👋",
+          "media": [
+            {
+              "position": 0,
+              "mediaId": "fixture-media-0002",
+              "evidenceId": "fixture-evidence-0002",
+              "sha256": "fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2fda2",
+              "byteLength": 1048576,
+              "mimeType": "video/mp4",
+              "alt": null,
+              "thumbnail": {
+                "mediaId": "fixture-media-0003",
+                "evidenceId": "fixture-evidence-0003",
+                "sha256": "fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3fda3",
+                "byteLength": 20480,
+                "mimeType": "image/jpeg"
+              },
+              "thumbnailTimestampMs": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "capabilityInputs": {
+    "capabilitiesClosed": {
+      "now": "2026-11-04T08:00:00.000Z",
+      "gates": "CLOSED"
+    },
+    "capabilitiesEligibleMedia": {
+      "now": "2026-11-04T08:00:00.000Z",
+      "gates": {
+        "organizationEnabled": true,
+        "dispatcherAvailable": true,
+        "mediaDeliveryReady": true,
+        "policy": {
+          "grantedAt": "2026-11-03T23:00:00.000Z",
+          "expiresAt": "2026-11-10T23:00:00.000Z"
+        },
+        "providers": [
+          {
+            "identifier": "instagram-standalone",
+            "editor": "normal",
+            "requiresMedia": true,
+            "maxStepUnits": 4,
+            "maxStepDeadlineMs": 60000
+          }
+        ]
+      }
+    }
+  }
+}
