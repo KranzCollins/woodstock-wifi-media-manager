@@ -1560,6 +1560,32 @@ describe('ManagedService (FAKE in-memory Prisma, real repository + service)', ()
   });
 
   describe('operation status (lost acknowledgement recovery)', () => {
+    it.each(['SCHEDULE', 'PUBLISH_NOW', 'CANCEL', 'DELETE', 'RESOLVE'])(
+      'refuses a %s key through DRAFT lookup and replay without fabricating a snapshot',
+      async (kind) => {
+        const { body, edit } = await setup();
+        const created = await service.createDraft(ORG, CREDENTIAL, body());
+        const operationKey = `ww:lifecycle:probe:${kind}`;
+        db.insert('managedOperation', {
+          organizationId: ORG, operationKey, kind, credentialId: CREDENTIAL,
+          payloadHash: created.payloadHash, managedPostId: created.managedPostId,
+          revision: 1, sequence: 0,
+        });
+        const revisions = structuredClone(db.tables.managedPostRevision);
+        const posts = structuredClone(db.tables.post);
+        const events = structuredClone(db.tables.managedChangeEvent);
+        const expected = { status: 409, code: 'OPERATION_KEY_KIND_MISMATCH' };
+        expect(await refusal(service.operationStatus(ORG, operationKey))).toEqual(expected);
+        expect(await refusal(service.createDraft(ORG, CREDENTIAL, body({ operationKey })))).toEqual(expected);
+        expect(await refusal(service.editDraft(ORG, CREDENTIAL, created.managedPostId, edit(1, operationKey)))).toEqual(expected);
+        expect(db.tables.managedPostRevision).toEqual(revisions);
+        expect(db.tables.post).toEqual(posts);
+        expect(db.tables.managedChangeEvent).toEqual(events);
+        expect(await service.operationStatus(OTHER_ORG, operationKey)).toMatchObject({ status: 'ABSENT' });
+        expect(await service.operationStatus(ORG, created.operationKey)).toMatchObject({ status: 'COMMITTED', kind: 'CREATE_DRAFT' });
+      }
+    );
+
     it('answers ABSENT for a key that never committed, and writes nothing', async () => {
       const { body } = await setup();
       await service.createDraft(ORG, CREDENTIAL, body());

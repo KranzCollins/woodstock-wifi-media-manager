@@ -12,6 +12,7 @@ import { isManagedOrganization } from '@gitroom/nestjs-libraries/database/prisma
 
 export type ManagedConflictCode =
   | 'OPERATION_KEY_PAYLOAD_MISMATCH'
+  | 'OPERATION_KEY_KIND_MISMATCH'
   | 'REVISION_CONFLICT'
   | 'BINDING_GENERATION_MISMATCH'
   | 'CHANNEL_NOT_QUALIFIED'

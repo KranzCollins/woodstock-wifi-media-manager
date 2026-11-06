@@ -8,11 +8,14 @@ import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { PrismaService } from '@gitroom/nestjs-libraries/database/prisma/prisma.service';
 import { managedRateLimit } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.mode';
 import { ManagedRuntimeModule } from '@gitroom/backend/managed-runtime/managed-runtime.module';
+import { ManagedLifecycleEnvironmentConfiguration } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.lifecycle.configuration';
+import { ManagedLifecycleDispatcher } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.lifecycle.dispatcher';
 import {
   assertManagedRuntimeSchema,
   loadManagedRuntimeConfig,
   MANAGED_RUNTIME_CHECK_TIMEOUT_MS,
   MANAGED_RUNTIME_LEASE_REFRESH_MS,
+  MANAGED_RUNTIME_LEASE_SECONDS,
   MANAGED_RUNTIME_SCHEMA_TIMEOUT_MS,
   ManagedRuntimeConfigError,
   managedStorageNamespace,
@@ -158,7 +161,8 @@ async function start() {
 
   // a lease that can't be renewed may already be another runtime's: stop
   // rather than run beside it. Renewal goes on while stop() closes the app
-  refresh = setInterval(async () => {
+  const refreshPresence = async () => {
+    const requestedAt = Date.now();
     let held: boolean;
     try {
       held = await withTimeout(
@@ -169,11 +173,15 @@ async function start() {
       held = false;
     }
 
+    nest.get(ManagedLifecycleEnvironmentConfiguration).setRuntimePresenceUntil(held && !stopping
+      ? new Date(requestedAt + MANAGED_RUNTIME_LEASE_SECONDS * 1000) : null);
     if (!held) {
       logger.error('Lost the single-instance lease or Redis, stopping');
       process.exit(1);
     }
-  }, MANAGED_RUNTIME_LEASE_REFRESH_MS);
+  };
+  await refreshPresence();
+  refresh = setInterval(refreshPresence, MANAGED_RUNTIME_LEASE_REFRESH_MS);
 
   if (stopping) {
     return;
@@ -194,6 +202,7 @@ async function start() {
     return;
   }
 
+  nest.get(ManagedLifecycleDispatcher).start();
   logger.log(
     `Managed runtime listening on ${config.host}:${config.port}, ${managedRateLimit()} requests / hour per organization`
   );
@@ -206,6 +215,7 @@ const stop = async (signal: string) => {
     return;
   }
   stopping = true;
+  app?.get(ManagedLifecycleEnvironmentConfiguration).setRuntimePresenceUntil(null);
   logger.log(`${signal} received, stopping`);
   setTimeout(() => process.exit(1), STOP_DEADLINE_MS).unref();
 

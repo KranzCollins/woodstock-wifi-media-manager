@@ -1089,6 +1089,13 @@ export class ManagedService {
       return null;
     }
 
+    if (!['CREATE_DRAFT', 'EDIT_DRAFT'].includes(operation.kind)) {
+      return { refused: new ManagedConflictException(
+        'OPERATION_KEY_KIND_MISMATCH',
+        'This operation key belongs to a different operation kind'
+      ) };
+    }
+
     if (operation.payloadHash !== payloadHash) {
       return {
         refused: new ManagedConflictException(
@@ -1884,6 +1891,15 @@ export class ManagedService {
       const operation = await reader.getOperation(operationKey);
       if (!operation) {
         return { operationKey, status: 'ABSENT' as const, asOfSequence };
+      }
+
+      // The namespace is shared, the response protocols are not. A lifecycle
+      // acknowledgement must never be reconstructed from a DRAFT snapshot.
+      if (!['CREATE_DRAFT', 'EDIT_DRAFT'].includes(operation.kind)) {
+        throw new ManagedConflictException(
+          'OPERATION_KEY_KIND_MISMATCH',
+          'This operation key requires the lifecycle operation endpoint'
+        );
       }
 
       const revision = await reader.getRevision(

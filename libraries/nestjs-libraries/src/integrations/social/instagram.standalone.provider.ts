@@ -16,8 +16,6 @@ import { META_GRAPH_API_VERSION } from '@gitroom/nestjs-libraries/integrations/s
 import { Integration } from '@prisma/client';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 
-const instagramProvider = new InstagramProvider();
-
 @Rules(
   "Instagram should have at least one attachment, if it's a story, it can have only one picture"
 )
@@ -39,6 +37,14 @@ export class InstagramStandaloneProvider
   dto = InstagramDto;
 
   editor = 'normal' as const;
+
+  // Every content call is delegated with the graph.instagram.com domain. The
+  // delegate is only passed in by the managed publish adapter, whose delegate
+  // can reach the network through its own transport alone
+  constructor(private readonly instagramProvider = new InstagramProvider()) {
+    super();
+  }
+
   maxLength() {
     return 2200;
   }
@@ -76,7 +82,7 @@ export class InstagramStandaloneProvider
         value: string;
       }
     | undefined {
-    return instagramProvider.handleErrors(body, status);
+    return this.instagramProvider.handleErrors(body, status);
   }
 
   async refreshToken(refresh_token: string): Promise<AuthTokenDetails> {
@@ -199,7 +205,7 @@ export class InstagramStandaloneProvider
     postDetails: PostDetails<InstagramDto>[],
     integration: Integration
   ): Promise<PostResponse[]> {
-    return instagramProvider.post(
+    return this.instagramProvider.post(
       id,
       accessToken,
       postDetails,
@@ -214,7 +220,7 @@ export class InstagramStandaloneProvider
     postDetails: PostDetails<InstagramDto>[],
     integration: Integration
   ): Promise<PostResponse[]> {
-    return instagramProvider.postPending(
+    return this.instagramProvider.postPending(
       id,
       accessToken,
       postDetails,
@@ -229,7 +235,7 @@ export class InstagramStandaloneProvider
     pendingData: any,
     integration: Integration
   ) {
-    return instagramProvider.checkPostStatus(
+    return this.instagramProvider.checkPostStatus(
       accessToken,
       pendingData,
       integration
@@ -241,7 +247,11 @@ export class InstagramStandaloneProvider
     pendingData: any,
     integration: Integration
   ) {
-    return instagramProvider.finalizePost(accessToken, pendingData, integration);
+    return this.instagramProvider.finalizePost(
+      accessToken,
+      pendingData,
+      integration
+    );
   }
 
   async comment(
@@ -252,7 +262,7 @@ export class InstagramStandaloneProvider
     postDetails: PostDetails<InstagramDto>[],
     integration: Integration
   ): Promise<PostResponse[]> {
-    return instagramProvider.comment(
+    return this.instagramProvider.comment(
       id,
       postId,
       lastCommentId,
@@ -264,7 +274,7 @@ export class InstagramStandaloneProvider
   }
 
   async analytics(id: string, accessToken: string, date: number) {
-    return instagramProvider.analytics(
+    return this.instagramProvider.analytics(
       id,
       accessToken,
       date,
@@ -278,7 +288,7 @@ export class InstagramStandaloneProvider
     postId: string,
     date: number
   ) {
-    return instagramProvider.postAnalytics(
+    return this.instagramProvider.postAnalytics(
       integrationId,
       accessToken,
       postId,

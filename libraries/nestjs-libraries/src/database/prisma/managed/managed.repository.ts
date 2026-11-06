@@ -438,7 +438,7 @@ const MEDIA_UPLOAD_ATTEMPT_SELECT = {
 
 // Every query is scoped to the organization the store was opened for; there
 // is no method that takes another organization id
-class PrismaManagedStore implements ManagedTx {
+export class PrismaManagedStore implements ManagedTx {
   constructor(
     private _client: Prisma.TransactionClient,
     private _organizationId: string,

@@ -1,6 +1,7 @@
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Request } from 'express';
+import { managedRequestBudgetKey } from '@gitroom/nestjs-libraries/database/prisma/managed/managed.request.budget';
 
 const isPublicComment = (method: string, url: string) =>
   method === 'POST' && /^\/public\/posts\/[^/]+\/comments/.test(url);
@@ -55,7 +56,7 @@ export class ThrottlerManagedCredentialGuard extends ThrottlerGuard {
     suffix: string,
     name: string
   ): string {
-    return `managed_org_${name}_${suffix}`;
+    return managedRequestBudgetKey(suffix, name);
   }
 }
 

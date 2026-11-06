@@ -1,4 +1,4 @@
-import { DynamicModule, Global, Module } from '@nestjs/common';
+import { DynamicModule, Global, Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
@@ -18,6 +18,12 @@ import {
   ManagedRuntimeState,
 } from '@gitroom/backend/managed-runtime/managed-runtime.config';
 
+import { managedLifecycleProviders } from './managed-lifecycle.providers';
+import { ManagedLifecycleController } from '../managed-api/managed.lifecycle.controller';
+import { ManagedLifecycleMediaController } from '../managed-api/managed.lifecycle.media.controller';
+import { ManagedAuthMiddleware } from '../services/auth/managed.auth.middleware';
+import { ManagedScopeGuard } from '../services/auth/managed.scope.guard';
+
 // The isolated W&W managed runtime (docs/managed-extension/deployment.md):
 // the managed API and exactly the providers it injects. Unlike AppModule, no
 // Temporal client or worker registration, dashboard / public API, agent, chat,
@@ -29,6 +35,9 @@ const providers = [
   ManagedRepository,
   ManagedService,
   ManagedMediaService,
+  ManagedAuthMiddleware,
+  ManagedScopeGuard,
+  ...managedLifecycleProviders,
 ];
 
 @Global()
@@ -45,11 +54,17 @@ const providers = [
       storage: new ThrottlerStorageRedisService(ioRedis),
     }),
   ],
-  controllers: [ManagedRuntimeHealthController],
+  controllers: [ManagedRuntimeHealthController, ManagedLifecycleController, ManagedLifecycleMediaController],
   providers,
   exports: providers,
 })
-export class ManagedRuntimeModule {
+export class ManagedRuntimeModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Signed media is independently authenticated, metered and private. Only
+    // this isolated runtime mounts it; the upstream Sentry app never does.
+    consumer.apply(ManagedAuthMiddleware).forRoutes(ManagedLifecycleController);
+  }
+
   static register(state: ManagedRuntimeState): DynamicModule {
     return {
       module: ManagedRuntimeModule,

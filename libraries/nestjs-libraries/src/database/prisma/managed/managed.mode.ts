@@ -13,6 +13,9 @@ export const MANAGED_SCOPES = [
   'channels:connect-callback',
   'posts:read',
   'posts:write',
+  // Separate lifecycle authority; existing draft credentials gain neither.
+  'posts:schedule',
+  'posts:publish',
   'media:write',
   // reserved uploads only; meant for the W&W ingest worker's own credential
   'media:upload',
